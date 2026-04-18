@@ -9,7 +9,7 @@
 /* ─── Dark mode tokens (default) ─────────────────────────────────────────── */
 :root {
   /* Canvas — opaque base for full-screen surfaces (matches body mesh base) */
-  --ds-canvas:        #030712;
+  --ds-canvas:        #050818;
   /* Glass surfaces — translucent, layered */
   --ds-surface:       rgba(255, 255, 255, 0.07);
   --ds-raised:        rgba(255, 255, 255, 0.05);
@@ -135,12 +135,15 @@ body {
   color: var(--ds-text-hi);
   min-height: 100dvh;
 
-  /* Mesh gradient background — dark */
-  background-color: #030712;
+  /* Mesh gradient background — dark, rich blooms so glass blur has color to pick up */
+  background-color: #050818;
   background-image:
-    radial-gradient(ellipse 80% 50% at 75% -10%, rgba(99, 102, 241, 0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at -5% 90%, rgba(59, 130, 246, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(15, 23, 42, 0.4) 0%, transparent 100%);
+    radial-gradient(ellipse 90% 60% at 80% -5%,  rgba(99, 102, 241, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at -10% 30%, rgba(56, 189, 248, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 55% at 110% 80%, rgba(168, 85, 247, 0.40) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 30% 110%, rgba(14, 165, 233, 0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 60%);
+  background-attachment: fixed;
 }
 
 /* Light mode background */
