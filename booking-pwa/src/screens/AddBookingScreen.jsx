@@ -262,7 +262,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
     <>
       <VoiceOverlay isListening={isListening} interimText={interimText} onStop={stop} />
 
-      <div className="flex flex-col h-full bg-canvas">
+      <div className="flex flex-col h-full bg-[var(--ds-canvas)]">
         {/* Header */}
         <div className="flex items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-white/10">
           <button
@@ -425,7 +425,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
         </div>
 
         {/* Save button */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3 bg-canvas border-t border-white/10 shrink-0">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3 bg-[var(--ds-canvas)] border-t border-white/10 shrink-0">
           <button type="button" onClick={handleSave} className="btn-primary">
             Save Booking
           </button>

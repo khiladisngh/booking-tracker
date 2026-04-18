@@ -8,8 +8,9 @@
 
 /* ─── Dark mode tokens (default) ─────────────────────────────────────────── */
 :root {
+  /* Canvas — opaque base for full-screen surfaces (matches body mesh base) */
+  --ds-canvas:        #030712;
   /* Glass surfaces — translucent, layered */
-  --ds-canvas:        transparent;
   --ds-surface:       rgba(255, 255, 255, 0.07);
   --ds-raised:        rgba(255, 255, 255, 0.05);
   --ds-overlay:       rgba(255, 255, 255, 0.10);
@@ -66,6 +67,7 @@
 /* ─── Light mode tokens ───────────────────────────────────────────────────── */
 @media (prefers-color-scheme: light) {
   :root {
+    --ds-canvas:        #f2f2f7;
     --ds-surface:       rgba(255, 255, 255, 0.72);
     --ds-raised:        rgba(255, 255, 255, 0.85);
     --ds-overlay:       rgba(0, 0, 0, 0.04);
@@ -95,7 +97,7 @@
   --font-sans: -apple-system, 'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
 
-  --color-canvas:        transparent;
+  --color-canvas:        #030712;
   --color-surface:       rgba(255, 255, 255, 0.07);
   --color-raised:        rgba(255, 255, 255, 0.05);
   --color-overlay:       rgba(255, 255, 255, 0.10);
