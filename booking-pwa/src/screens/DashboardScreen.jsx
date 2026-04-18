@@ -3,10 +3,11 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } fr
 import { motion } from 'framer-motion'
 import {
   CalendarRange, CalendarDays, Plane, BedDouble,
-  Bell, BellOff, MapPin, CloudUpload, ChevronRight, Clock,
+  Bell, BellOff, MapPin, CloudUpload, ChevronRight, Clock, CalendarCheck,
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import BackupSheet from '../components/BackupSheet'
+import { downloadICS } from '../services/icsExport'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -283,22 +284,38 @@ export default function DashboardScreen() {
         </div>
       </section>
 
-      {/* Cloud Backup */}
+      {/* Cloud Backup + Calendar Export */}
       <section aria-label="Cloud backup">
-        <h2 className="section-label mb-2">Cloud Backup</h2>
-        <motion.button
-          type="button"
-          onClick={() => setBackupOpen(true)}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-          className="glass w-full rounded-[16px] px-4 py-3 flex items-center justify-between touch-target"
-        >
-          <div className="flex items-center gap-3">
-            <CloudUpload size={18} className="text-accent" strokeWidth={1.8} />
-            <span className="text-[13px] text-hi">Backup &amp; Restore</span>
-          </div>
-          <ChevronRight size={16} className="text-lo" strokeWidth={2} />
-        </motion.button>
+        <h2 className="section-label mb-2">Data</h2>
+        <div className="glass rounded-[16px] overflow-hidden divide-y divide-white/[0.06]">
+          <motion.button
+            type="button"
+            onClick={() => setBackupOpen(true)}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 38 }}
+            className="w-full px-4 py-3 flex items-center justify-between touch-target"
+          >
+            <div className="flex items-center gap-3">
+              <CloudUpload size={18} className="text-accent" strokeWidth={1.8} />
+              <span className="text-[13px] text-hi">Backup &amp; Restore</span>
+            </div>
+            <ChevronRight size={16} className="text-lo" strokeWidth={2} />
+          </motion.button>
+
+          <motion.button
+            type="button"
+            onClick={() => downloadICS(bookings)}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 38 }}
+            className="w-full px-4 py-3 flex items-center justify-between touch-target"
+          >
+            <div className="flex items-center gap-3">
+              <CalendarCheck size={18} className="text-accent" strokeWidth={1.8} />
+              <span className="text-[13px] text-hi">Export to Calendar (.ics)</span>
+            </div>
+            <ChevronRight size={16} className="text-lo" strokeWidth={2} />
+          </motion.button>
+        </div>
       </section>
 
       <BackupSheet isOpen={backupOpen} onClose={() => setBackupOpen(false)} />
