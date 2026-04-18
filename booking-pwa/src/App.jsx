@@ -141,11 +141,10 @@ export default function App() {
           onClick={() => setShowAdd(true)}
           whileTap={{ scale: 0.88 }}
           transition={SPRING_TAB}
-          className="w-14 h-14 rounded-full bg-accent flex items-center justify-center shadow-xl pointer-events-auto"
-          style={{ boxShadow: '0 4px 20px color-mix(in srgb, var(--ds-accent) 50%, transparent)' }}
+          className="w-14 h-14 rounded-full glass-accent flex items-center justify-center pointer-events-auto"
           aria-label="Add booking"
         >
-          <Plus size={22} color="white" strokeWidth={2.5} />
+          <Plus size={22} color="var(--ds-accent)" strokeWidth={2.5} />
         </motion.button>
 
         {/* Tab pill — right */}

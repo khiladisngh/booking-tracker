@@ -29,11 +29,11 @@ export default function LocationTabs() {
             {isActive && (
               <motion.span
                 layoutId="location-tab-bg"
-                className="absolute inset-0 rounded-full bg-accent"
+                className="absolute inset-0 rounded-full glass-accent"
                 transition={SPRING}
               />
             )}
-            <span className={`relative z-10 transition-colors duration-150 ${isActive ? 'text-white' : 'text-lo'}`}>
+            <span className={`relative z-10 transition-colors duration-150 ${isActive ? 'text-accent font-semibold' : 'text-lo'}`}>
               {tab.name}
             </span>
           </button>

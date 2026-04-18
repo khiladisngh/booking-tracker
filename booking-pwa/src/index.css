@@ -261,6 +261,32 @@ body {
   }
 }
 
+/* ─── Glass accent — blue-tinted glass for FAB + active pills ────────────── */
+.glass-accent {
+  background-color: color-mix(in srgb, var(--ds-accent) 22%, transparent);
+  background-image: linear-gradient(135deg,
+    color-mix(in srgb, var(--ds-accent) 30%, rgba(255,255,255,0.18)) 0%,
+    color-mix(in srgb, var(--ds-accent) 12%, transparent) 100%);
+  backdrop-filter: var(--ds-blur-md);
+  border: 1px solid color-mix(in srgb, var(--ds-accent) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 22px color-mix(in srgb, var(--ds-accent) 38%, transparent);
+}
+
+@media (prefers-color-scheme: light) {
+  .glass-accent {
+    background-color: color-mix(in srgb, var(--ds-accent) 18%, rgba(255,255,255,0.65));
+    background-image: linear-gradient(135deg,
+      rgba(255,255,255,0.50) 0%,
+      color-mix(in srgb, var(--ds-accent) 20%, transparent) 100%);
+    border: 1px solid color-mix(in srgb, var(--ds-accent) 35%, rgba(255,255,255,0.60));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.90),
+      0 0 18px color-mix(in srgb, var(--ds-accent) 25%, transparent);
+  }
+}
+
 /* ─── Urgency glow — left border bloom ───────────────────────────────────── */
 .glow-red   { box-shadow: inset 3px 0 16px rgba(255, 69, 58, 0.18),  0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.10); border-left-color: var(--ds-red) !important; }
 .glow-amber { box-shadow: inset 3px 0 16px rgba(255, 159, 10, 0.18), 0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.10); border-left-color: var(--ds-amber) !important; }
