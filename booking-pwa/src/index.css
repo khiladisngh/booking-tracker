@@ -80,8 +80,8 @@
     --ds-accent-hi:     #0064d6;
 
     --ds-text-hi:       #1c1c1e;
-    --ds-text-lo:       #6e6e73;
-    --ds-text-dim:      #aeaeb2;
+    --ds-text-lo:       #3a3a3c;
+    --ds-text-dim:      #6e6e73;
 
     --ds-red:           #ff3b30;
     --ds-amber:         #ff9500;
@@ -97,25 +97,26 @@
   --font-sans: -apple-system, 'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
 
-  --color-canvas:        #030712;
-  --color-surface:       rgba(255, 255, 255, 0.07);
-  --color-raised:        rgba(255, 255, 255, 0.05);
-  --color-overlay:       rgba(255, 255, 255, 0.10);
+  /* Tailwind utilities map to --ds-* vars so they flip with prefers-color-scheme */
+  --color-canvas:        var(--ds-canvas);
+  --color-surface:       var(--ds-surface);
+  --color-raised:        var(--ds-raised);
+  --color-overlay:       var(--ds-overlay);
 
-  --color-line:          rgba(255, 255, 255, 0.13);
-  --color-subtle:        rgba(255, 255, 255, 0.06);
+  --color-line:          var(--ds-border);
+  --color-subtle:        var(--ds-border-subtle);
 
-  --color-accent:        #0a84ff;
-  --color-accent-press:  #0070e0;
-  --color-accent-hi:     #409cff;
+  --color-accent:        var(--ds-accent);
+  --color-accent-press:  var(--ds-accent-press);
+  --color-accent-hi:     var(--ds-accent-hi);
 
-  --color-hi:            #f5f5f7;
-  --color-lo:            rgba(235, 235, 245, 0.55);
-  --color-dim:           rgba(235, 235, 245, 0.25);
+  --color-hi:            var(--ds-text-hi);
+  --color-lo:            var(--ds-text-lo);
+  --color-dim:           var(--ds-text-dim);
 
-  --color-urgent:        #ff453a;
-  --color-warn:          #ff9f0a;
-  --color-ok:            #30d158;
+  --color-urgent:        var(--ds-red);
+  --color-warn:          var(--ds-amber);
+  --color-ok:            var(--ds-green);
 }
 
 /* ─── Global resets ───────────────────────────────────────────────────────── */
@@ -146,13 +147,16 @@ body {
   background-attachment: fixed;
 }
 
-/* Light mode background */
+/* Light mode background — vivid pastel blooms so glass blur reveals color */
 @media (prefers-color-scheme: light) {
   body {
-    background-color: #f2f2f7;
+    background-color: #eef1f8;
     background-image:
-      radial-gradient(ellipse 80% 50% at 75% -10%, rgba(99, 102, 241, 0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at -5% 90%, rgba(59, 130, 246, 0.05) 0%, transparent 55%);
+      radial-gradient(ellipse 90% 60% at 80% -5%,  rgba(129, 140, 248, 0.45) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at -10% 30%, rgba(56, 189, 248, 0.40) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 55% at 110% 80%, rgba(217, 70, 239, 0.32) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 30% 110%, rgba(14, 165, 233, 0.32) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(244, 114, 182, 0.18) 0%, transparent 60%);
     color: var(--ds-text-hi);
   }
 }
