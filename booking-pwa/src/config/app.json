@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "locations": [
+    {
+      "id": "shimla",
+      "name": "Shimla",
+      "rooms": ["101", "102", "103", "104", "105", "106", "107"]
+    },
+    {
+      "id": "manali",
+      "name": "Manali",
+      "rooms": ["A1", "A2", "B1", "B2", "C1", "C2"]
+    }
+  ],
+  "bookingFields": [
+    { "id": "guestName",  "label": "Guest name",        "type": "text",     "required": true  },
+    { "id": "checkIn",    "label": "Check in",           "type": "date",     "required": true  },
+    { "id": "nights",     "label": "Nights",             "type": "number",   "required": true  },
+    { "id": "helicopter", "label": "Helicopter ticket",  "type": "boolean",  "required": false },
+    { "id": "assistance", "label": "Assistance needed",  "type": "boolean",  "required": false },
+    { "id": "remarks",    "label": "Remarks",            "type": "textarea", "required": false }
+  ],
+  "notifications": {
+    "eveningReminderTime": "20:00",
+    "morningReminderTime": "08:00",
+    "daysBefore": 1
+  }
+}

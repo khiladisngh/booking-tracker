@@ -1,0 +1,274 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Tactical Command
+   Semantic tokens map 1:1 to Flutter ColorScheme for future migration.
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Flutter ThemeData.colorScheme mapping:
+     scaffoldBackgroundColor  → --ds-canvas
+     surface                  → --ds-surface
+     surfaceVariant           → --ds-raised
+     outline                  → --ds-border
+     primary                  → --ds-accent
+     onPrimary                → #ffffff
+     onSurface                → --ds-text-hi
+     onSurfaceVariant         → --ds-text-lo
+     error                    → --ds-red
+*/
+
+/* ─── Base tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Surface layers (light → deepest) */
+  --ds-canvas:        #07101e;   /* page / scaffold background  */
+  --ds-surface:       #0d1a2e;   /* cards, panels, sheets       */
+  --ds-raised:        #122234;   /* inputs, elevated elements   */
+  --ds-overlay:       #1c3050;   /* toggle-off fill, hover bg   */
+
+  /* Borders */
+  --ds-border:        #1c3050;   /* default borders             */
+  --ds-border-subtle: #14253d;   /* dividers, section splits    */
+
+  /* Accent / Brand — steel blue */
+  --ds-accent:        #3d82f0;
+  --ds-accent-press:  #2a65d0;
+  --ds-accent-hi:     #60a0f8;   /* accent text on dark bg      */
+
+  /* Text hierarchy */
+  --ds-text-hi:       #e8f1fa;   /* primary content             */
+  --ds-text-lo:       #7990a8;   /* labels, metadata            */
+  --ds-text-dim:      #445872;   /* placeholders, disabled      */
+
+  /* Status palette */
+  --ds-red:           #e84040;   /* urgent / error              */
+  --ds-amber:         #f0980a;   /* warning / tomorrow          */
+  --ds-green:         #1ec25a;   /* normal / success            */
+  --ds-sky:           #38b2f8;   /* info tag                    */
+  --ds-violet:        #a78bfa;   /* assistance tag              */
+
+  /* iOS safe area */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+
+  /* Motion */
+  --ds-dur-fast:  120ms;
+  --ds-dur-base:  200ms;
+  --ds-dur-slow:  300ms;
+  --ds-ease:      cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radius scale */
+  --ds-r-xs:  4px;
+  --ds-r-sm:  8px;
+  --ds-r-md:  12px;
+  --ds-r-lg:  14px;
+  --ds-r-xl:  20px;
+  --ds-r-2xl: 28px;
+}
+
+/* ─── Tailwind @theme — exposes tokens as utility classes ────────────────── */
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Surface colours → bg-canvas, bg-surface, bg-raised, bg-overlay */
+  --color-canvas:        #07101e;
+  --color-surface:       #0d1a2e;
+  --color-raised:        #122234;
+  --color-overlay:       #1c3050;
+
+  /* Borders → border-line, border-subtle */
+  --color-line:          #1c3050;
+  --color-subtle:        #14253d;
+
+  /* Accent → bg-accent, text-accent, border-accent */
+  --color-accent:        #3d82f0;
+  --color-accent-press:  #2a65d0;
+  --color-accent-hi:     #60a0f8;
+
+  /* Text → text-hi, text-lo, text-dim */
+  --color-hi:            #e8f1fa;
+  --color-lo:            #7990a8;
+  --color-dim:           #445872;
+
+  /* Status */
+  --color-urgent:        #e84040;
+  --color-warn:          #f0980a;
+  --color-ok:            #1ec25a;
+}
+
+/* ─── Global resets ──────────────────────────────────────────────────────── */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--ds-canvas);
+  color: var(--ds-text-hi);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Safe area helpers ───────────────────────────────────────────────────── */
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+/* ─── Interaction helpers ─────────────────────────────────────────────────── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Focus ring — keyboard accessibility */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar suppression ───────────────────────────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Urgency stripe colours (left border indicator on cards) ────────────── */
+.stripe-red    { background-color: var(--ds-red); }
+.stripe-amber  { background-color: var(--ds-amber); }
+.stripe-green  { background-color: var(--ds-green); }
+.stripe-blue   { background-color: var(--ds-accent); }
+.stripe-past   { background-color: var(--ds-border); }
+
+/* ─── Shared component atoms ─────────────────────────────────────────────── */
+
+/* Badge — room number, compact labels */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: var(--ds-r-xs);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono, 'Courier New', monospace);
+  letter-spacing: 0.02em;
+  border: 1px solid;
+}
+
+.badge-accent {
+  background-color: color-mix(in srgb, var(--ds-accent) 12%, transparent);
+  color: var(--ds-accent-hi);
+  border-color: color-mix(in srgb, var(--ds-accent) 25%, transparent);
+}
+
+/* Tag — helicopter, assistance, etc. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.tag-sky {
+  background-color: color-mix(in srgb, var(--ds-sky) 10%, transparent);
+  color: var(--ds-sky);
+  border-color: color-mix(in srgb, var(--ds-sky) 20%, transparent);
+}
+
+.tag-violet {
+  background-color: color-mix(in srgb, var(--ds-violet) 10%, transparent);
+  color: var(--ds-violet);
+  border-color: color-mix(in srgb, var(--ds-violet) 20%, transparent);
+}
+
+.tag-custom {
+  background-color: color-mix(in srgb, #2dd4bf 10%, transparent);
+  color: #5eead4;
+  border-color: color-mix(in srgb, #2dd4bf 20%, transparent);
+}
+
+/* Section label */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-text-dim);
+}
+
+/* Card base */
+.card {
+  background-color: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  padding: 1rem;
+}
+
+/* Primary button */
+.btn-primary {
+  background-color: var(--ds-accent);
+  color: #fff;
+  border-radius: var(--ds-r-md);
+  padding: 0.875rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  width: 100%;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.btn-primary:active { background-color: var(--ds-accent-press); }
+
+/* Ghost button */
+.btn-ghost {
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-lo);
+  border-radius: var(--ds-r-md);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.btn-ghost:active { background-color: var(--ds-raised); }
+
+/* Danger button */
+.btn-danger {
+  border: 1px solid color-mix(in srgb, var(--ds-red) 40%, transparent);
+  color: color-mix(in srgb, var(--ds-red) 90%, #fff);
+  border-radius: var(--ds-r-md);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.btn-danger:active { background-color: color-mix(in srgb, var(--ds-red) 10%, transparent); }
+
+/* Form input */
+.field {
+  background-color: var(--ds-raised);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-sm);
+  padding: 0.75rem 1rem;
+  color: var(--ds-text-hi);
+  width: 100%;
+  font-size: 0.9375rem;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease);
+}
+.field:focus { outline: none; border-color: var(--ds-accent); }
+.field::placeholder { color: var(--ds-text-dim); }
+
+.field-error {
+  border-color: var(--ds-red);
+}
+.field-error:focus { border-color: color-mix(in srgb, var(--ds-red) 80%, #fff); }
