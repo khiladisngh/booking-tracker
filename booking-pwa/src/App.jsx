@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CalendarDays, CalendarRange, LayoutDashboard, Plus } from 'lucide-react'
+import { CalendarDays, CalendarRange, LayoutDashboard, Plus, CalendarPlus, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from './store/useStore'
 import { scheduleNotifications, cancelAllNotifications } from './services/notifications'
@@ -8,6 +8,7 @@ import DashboardScreen from './screens/DashboardScreen'
 import CalendarScreen from './screens/CalendarScreen'
 import AddBookingScreen from './screens/AddBookingScreen'
 import BookingDetailSheet from './components/BookingDetailSheet'
+import { downloadICS } from './services/icsExport'
 
 const TABS = ['bookings', 'calendar', 'dashboard']
 
@@ -38,6 +39,7 @@ export default function App() {
   const [direction,       setDirection]       = useState(0)
   const [showAdd,         setShowAdd]         = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
+  const [calendarPrompt,  setCalendarPrompt]  = useState(null)
 
   const dragStart = useRef(null)
 
@@ -48,6 +50,11 @@ export default function App() {
     scheduleNotifications(bookings, config.notifications)
     return () => cancelAllNotifications()
   }, [bookings, config.notifications])
+
+  function handleAddClose(savedBooking) {
+    setShowAdd(false)
+    if (savedBooking) setCalendarPrompt(savedBooking)
+  }
 
   function navigate(newScreen) {
     const from = TABS.indexOf(screen)
@@ -126,7 +133,7 @@ export default function App() {
 
       {/* ── Bottom bar: isolated FAB left + tab pill right ──────────── */}
       <div
-        className="fixed bottom-0 left-0 right-0 flex items-end justify-between z-40 pointer-events-none"
+        className="fixed bottom-0 left-0 right-0 flex items-center justify-between z-40 pointer-events-none"
         style={{ padding: '0 20px', paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
       >
         {/* FAB — isolated left */}
@@ -169,7 +176,7 @@ export default function App() {
             className="fixed inset-0 z-50 flex flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
-            <AddBookingScreen onClose={() => setShowAdd(false)} />
+            <AddBookingScreen onClose={handleAddClose} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -178,6 +185,60 @@ export default function App() {
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
       />
+
+      {/* ── Calendar prompt — appears after saving a booking ─────────── */}
+      <AnimatePresence>
+        {calendarPrompt && (
+          <motion.div
+            key="cal-prompt"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={SPRING_SHEET}
+            className="fixed left-4 right-4 z-[55] glass-heavy rounded-[20px] p-4"
+            style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 16px) + 80px)' }}
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-hi leading-snug">
+                  Add to Calendar?
+                </p>
+                <p className="text-[12px] text-lo mt-0.5 truncate">
+                  {calendarPrompt.guestName} · {calendarPrompt.location} · Room {calendarPrompt.room}
+                </p>
+              </div>
+              <button
+                onClick={() => setCalendarPrompt(null)}
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full"
+                style={{ background: 'var(--ds-overlay)' }}
+                aria-label="Dismiss"
+              >
+                <X size={14} className="text-lo" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING_TAB}
+                onClick={() => { downloadICS([calendarPrompt]); setCalendarPrompt(null) }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-[12px] py-2.5 bg-accent"
+              >
+                <CalendarPlus size={15} color="white" strokeWidth={2} />
+                <span className="text-[13px] font-semibold text-white">Add to Calendar</span>
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                transition={SPRING_TAB}
+                onClick={() => setCalendarPrompt(null)}
+                className="px-4 rounded-[12px] py-2.5 text-[13px] font-medium text-lo"
+                style={{ background: 'var(--ds-surface)' }}
+              >
+                Skip
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

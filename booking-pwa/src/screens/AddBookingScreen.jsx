@@ -239,9 +239,9 @@ export default function AddBookingScreen({ onClose, initialValues }) {
   function handleSave() {
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
-    const now = new Date().toISOString()
-    addBooking({
-      id: crypto.randomUUID(),
+    const now     = new Date().toISOString()
+    const booking = {
+      id:          crypto.randomUUID(),
       location:    location.trim(),
       room:        room.trim(),
       guestName:   guestName.trim(),
@@ -254,8 +254,9 @@ export default function AddBookingScreen({ onClose, initialValues }) {
       remarks,
       createdAt:   now,
       updatedAt:   now,
-    })
-    onClose()
+    }
+    addBooking(booking)
+    onClose(booking)
   }
 
   return (
