@@ -123,6 +123,10 @@ async function deleteFile(fileId) {
   })
 }
 
+export async function deleteBackup(fileId) {
+  await deleteFile(fileId)
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function fetchBackupList() {

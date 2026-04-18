@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { CloudUpload, CloudDownload, Trash2, Clock, CheckCircle2, AlertCircle, Wifi } from 'lucide-react'
 import {
   initGoogleAuth,
   requestToken,
@@ -7,6 +8,7 @@ import {
   fetchBackupList,
   backupNow,
   restoreBackup,
+  deleteBackup,
   shouldRunScheduledBackup,
 } from '../services/googleDrive'
 import { useStore } from '../store/useStore'
@@ -30,6 +32,7 @@ export default function BackupSheet({ isOpen, onClose }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [restoring, setRestoring] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
   const bookingsRef = useRef(bookings)
   useEffect(() => { bookingsRef.current = bookings }, [bookings])
@@ -45,7 +48,6 @@ export default function BackupSheet({ isOpen, onClose }) {
     }
   }, [])
 
-  // Scheduled backup check — runs on connect and every minute
   const runScheduledCheck = useCallback(async () => {
     const list = await fetchBackupList()
     setBackups(list)
@@ -61,22 +63,12 @@ export default function BackupSheet({ isOpen, onClose }) {
   useEffect(() => {
     if (!window.google) return
     initGoogleAuth({
-      onSignIn: () => {
-        setIsConnected(true)
-        runScheduledCheck()
-      },
-      onSignOut: () => {
-        setIsConnected(false)
-        setBackups([])
-      },
+      onSignIn: () => { setIsConnected(true); runScheduledCheck() },
+      onSignOut: () => { setIsConnected(false); setBackups([]) },
     })
-    if (getAccessToken()) {
-      setIsConnected(true)
-      runScheduledCheck()
-    }
+    if (getAccessToken()) { setIsConnected(true); runScheduledCheck() }
   }, [runScheduledCheck])
 
-  // Re-check schedule every 60s while connected
   useEffect(() => {
     if (!isConnected) return
     const interval = setInterval(runScheduledCheck, 60_000)
@@ -89,11 +81,8 @@ export default function BackupSheet({ isOpen, onClose }) {
 
   async function handleConnect() {
     setStatus(null)
-    try {
-      await requestToken()
-    } catch {
-      setStatus({ type: 'err', msg: 'Could not connect to Google.' })
-    }
+    try { await requestToken() }
+    catch { setStatus({ type: 'err', msg: 'Could not connect to Google.' }) }
   }
 
   function handleDisconnect() {
@@ -131,6 +120,19 @@ export default function BackupSheet({ isOpen, onClose }) {
     }
   }
 
+  async function handleDelete(fileId) {
+    setDeleting(fileId)
+    setStatus(null)
+    try {
+      await deleteBackup(fileId)
+      await refreshBackups()
+    } catch (e) {
+      setStatus({ type: 'err', msg: e.message ?? 'Delete failed.' })
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   const gisAvailable = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   return (
@@ -139,8 +141,7 @@ export default function BackupSheet({ isOpen, onClose }) {
         aria-hidden="true"
         onClick={isOpen ? onClose : undefined}
         className={[
-          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm',
-          'transition-opacity duration-[300ms]',
+          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-[300ms]',
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         ].join(' ')}
       />
@@ -150,25 +151,24 @@ export default function BackupSheet({ isOpen, onClose }) {
         aria-modal="true"
         aria-label="Cloud Backup"
         className={[
-          'fixed bottom-0 left-0 right-0 z-50',
-          'bg-surface rounded-t-[24px] border-t border-line',
-          'max-h-[85vh] flex flex-col',
-          'transition-transform duration-[280ms]',
+          'fixed bottom-0 left-0 right-0 z-50 bg-surface rounded-t-[24px] border-t border-line',
+          'max-h-[85vh] flex flex-col transition-transform duration-[280ms]',
           isOpen ? 'translate-y-0' : 'translate-y-full',
         ].join(' ')}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
-        <button
-          type="button"
-          aria-label="Close sheet"
-          onClick={onClose}
-          className="flex justify-center pt-3 pb-1 w-full shrink-0 touch-target"
-        >
+        {/* Handle */}
+        <button type="button" aria-label="Close sheet" onClick={onClose}
+          className="flex justify-center pt-3 pb-1 w-full shrink-0 touch-target">
           <span className="w-9 h-1 rounded-full bg-overlay" />
         </button>
 
-        <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-8 pt-2 min-h-0 gap-5">
-          <h2 className="text-[18px] font-bold text-hi">Cloud Backup</h2>
+        <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-8 pt-2 min-h-0 gap-4">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <CloudUpload size={20} className="text-accent" strokeWidth={1.8} />
+            <h2 className="text-[18px] font-bold text-hi">Cloud Backup</h2>
+          </div>
 
           {!gisAvailable && (
             <div className="rounded-[12px] bg-raised border border-line p-4">
@@ -181,11 +181,8 @@ export default function BackupSheet({ isOpen, onClose }) {
           )}
 
           {gisAvailable && !isConnected && (
-            <button
-              type="button"
-              onClick={handleConnect}
-              className="btn-primary touch-target flex items-center justify-center gap-2"
-            >
+            <button type="button" onClick={handleConnect}
+              className="btn-primary touch-target flex items-center justify-center gap-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -198,25 +195,26 @@ export default function BackupSheet({ isOpen, onClose }) {
 
           {gisAvailable && isConnected && (
             <>
+              {/* Connected status */}
               <div className="flex items-center justify-between rounded-[12px] bg-raised border border-line px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-ok shrink-0" />
+                  <Wifi size={14} className="text-ok" strokeWidth={2} />
                   <span className="text-[13px] text-hi">Google Drive connected</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleDisconnect}
-                  className="text-[12px] text-lo hover:text-urgent transition-colors"
-                >
+                <button type="button" onClick={handleDisconnect}
+                  className="text-[12px] text-lo hover:text-urgent transition-colors">
                   Disconnect
                 </button>
               </div>
 
-              {/* Daily backup schedule */}
+              {/* Daily backup time */}
               <div className="rounded-[12px] bg-raised border border-line px-4 py-3 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[13px] text-hi font-medium">Daily backup time</p>
-                  <p className="text-[12px] text-lo mt-0.5">Runs once per day automatically</p>
+                <div className="flex items-center gap-2">
+                  <Clock size={15} className="text-lo shrink-0" strokeWidth={1.8} />
+                  <div>
+                    <p className="text-[13px] text-hi font-medium">Daily backup</p>
+                    <p className="text-[11px] text-lo">Runs once per day automatically</p>
+                  </div>
                 </div>
                 <input
                   type="time"
@@ -226,39 +224,48 @@ export default function BackupSheet({ isOpen, onClose }) {
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={handleBackupNow}
-                disabled={loading}
-                className="btn-primary touch-target disabled:opacity-50"
-              >
+              {/* Manual backup */}
+              <button type="button" onClick={handleBackupNow} disabled={loading}
+                className="btn-primary touch-target disabled:opacity-50 flex items-center justify-center gap-2">
+                <CloudUpload size={16} strokeWidth={2} />
                 {loading ? 'Backing up…' : 'Backup Now'}
               </button>
 
+              {/* Status message */}
               {status && (
-                <p className={`text-[13px] ${status.type === 'ok' ? 'text-ok' : 'text-urgent'}`}>
+                <div className={`flex items-center gap-2 text-[13px] ${status.type === 'ok' ? 'text-ok' : 'text-urgent'}`}>
+                  {status.type === 'ok'
+                    ? <CheckCircle2 size={15} strokeWidth={2} />
+                    : <AlertCircle size={15} strokeWidth={2} />}
                   {status.msg}
-                </p>
+                </div>
               )}
 
+              {/* Backup list */}
               {backups.length > 0 && (
                 <div>
                   <p className="section-label mb-3">Saved Backups</p>
                   <ul className="space-y-2">
                     {backups.map((f) => (
-                      <li
-                        key={f.id}
-                        className="flex items-center justify-between rounded-[12px] bg-raised border border-line px-4 py-3"
-                      >
-                        <span className="text-[13px] text-hi">{formatBackupName(f.name)}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRestore(f.id)}
-                          disabled={!!restoring}
-                          className="text-[12px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
-                        >
-                          {restoring === f.id ? 'Restoring…' : 'Restore'}
-                        </button>
+                      <li key={f.id}
+                        className="flex items-center justify-between rounded-[12px] bg-raised border border-line px-4 py-3 gap-3">
+                        <span className="text-[13px] text-hi truncate">{formatBackupName(f.name)}</span>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button type="button" onClick={() => handleRestore(f.id)}
+                            disabled={!!restoring || !!deleting}
+                            className="flex items-center gap-1 text-[12px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50">
+                            <CloudDownload size={13} strokeWidth={2} />
+                            {restoring === f.id ? 'Restoring…' : 'Restore'}
+                          </button>
+                          <button type="button" onClick={() => handleDelete(f.id)}
+                            disabled={!!restoring || !!deleting}
+                            className="flex items-center text-dim hover:text-urgent transition-colors disabled:opacity-50"
+                            aria-label="Delete backup">
+                            {deleting === f.id
+                              ? <span className="text-[11px] text-lo">…</span>
+                              : <Trash2 size={14} strokeWidth={1.8} />}
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

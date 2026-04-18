@@ -1,5 +1,9 @@
 import { useState, useMemo } from 'react'
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import {
+  CalendarRange, CalendarDays, Plane, BedDouble,
+  Bell, BellOff, MapPin, CloudUpload, ChevronRight, Clock,
+} from 'lucide-react'
 import { useStore } from '../store/useStore'
 import BackupSheet from '../components/BackupSheet'
 
@@ -99,10 +103,21 @@ function reminderDotStyle(checkIn) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+const STAT_ICON = {
+  'This week':    CalendarDays,
+  'This month':   CalendarRange,
+  'Helicopter':   Plane,
+  'Occupied now': BedDouble,
+}
+
 function StatCard({ value, label }) {
+  const Icon = STAT_ICON[label]
   return (
     <div className="bg-surface rounded-[14px] border border-line p-4 flex flex-col gap-2">
-      <span className="text-[36px] font-bold text-hi leading-none tabular-nums">{value}</span>
+      <div className="flex items-center justify-between">
+        <span className="text-[32px] font-bold text-hi leading-none tabular-nums">{value}</span>
+        {Icon && <Icon size={18} className="text-lo" strokeWidth={1.6} />}
+      </div>
       <span className="text-[12px] text-lo leading-tight">{label}</span>
     </div>
   )
@@ -117,15 +132,17 @@ function NotificationBanner({ permission, onPermissionChange }) {
     onPermissionChange(result)
   }
 
+  const isDenied = permission === 'denied'
+
   return (
     <div className="bg-surface rounded-[14px] border border-line p-4 flex gap-3 items-start">
-      <div className="shrink-0 mt-0.5">
-        <svg className="w-5 h-5 text-accent-hi" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
+      <div className="shrink-0 mt-0.5 text-accent">
+        {isDenied
+          ? <BellOff size={18} strokeWidth={1.8} />
+          : <Bell size={18} strokeWidth={1.8} />}
       </div>
       <div className="flex-1 min-w-0">
-        {permission === 'denied' ? (
+        {isDenied ? (
           <>
             <p className="text-[13px] font-medium text-hi">Notifications blocked</p>
             <p className="text-[12px] text-lo mt-0.5">Enable in device Settings to receive arrival reminders.</p>
@@ -151,12 +168,15 @@ function ReminderRow({ reminder }) {
   return (
     <div className="flex gap-3 items-center py-2.5 border-b border-subtle last:border-0">
       <span
-        className="shrink-0 w-1.5 h-1.5 rounded-full"
+        className="shrink-0 w-1.5 h-1.5 rounded-full mt-0.5"
         style={{ backgroundColor: reminderDotStyle(reminder.checkIn) }}
       />
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-medium text-hi truncate">{reminder.title}</p>
-        <p className="text-[12px] text-lo mt-0.5">{formatReminderTime(reminder.scheduledAt)}</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <Clock size={11} className="text-dim shrink-0" strokeWidth={1.8} />
+          <p className="text-[12px] text-lo">{formatReminderTime(reminder.scheduledAt)}</p>
+        </div>
       </div>
     </div>
   )
@@ -244,7 +264,10 @@ export default function DashboardScreen() {
         <div className="bg-surface rounded-[14px] border border-line overflow-hidden divide-y divide-subtle">
           {locationCounts.map((loc) => (
             <div key={loc.name} className="flex items-center justify-between px-4 py-3">
-              <span className="text-[13px] text-hi">{loc.name}</span>
+              <div className="flex items-center gap-2">
+                <MapPin size={13} className="text-lo shrink-0" strokeWidth={1.8} />
+                <span className="text-[13px] text-hi">{loc.name}</span>
+              </div>
               <span className="badge badge-accent tabular-nums">{loc.count}</span>
             </div>
           ))}
@@ -260,14 +283,10 @@ export default function DashboardScreen() {
           className="w-full bg-surface rounded-[14px] border border-line px-4 py-3 flex items-center justify-between touch-target"
         >
           <div className="flex items-center gap-3">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent" />
-            </svg>
+            <CloudUpload size={18} className="text-accent" strokeWidth={1.8} />
             <span className="text-[13px] text-hi">Backup &amp; Restore</span>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-lo" />
-          </svg>
+          <ChevronRight size={16} className="text-lo" strokeWidth={2} />
         </button>
       </section>
 

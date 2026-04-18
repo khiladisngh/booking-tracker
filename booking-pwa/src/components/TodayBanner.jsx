@@ -1,3 +1,4 @@
+import { LogIn, LogOut, BedDouble } from 'lucide-react'
 import { useStore } from '../store/useStore'
 
 export default function TodayBanner() {
@@ -12,19 +13,20 @@ export default function TodayBanner() {
     <div className="bg-surface rounded-[14px] border border-line px-4 py-3 flex items-center justify-between">
       <span className="section-label">Status</span>
       <div className="flex items-center gap-5">
-        <StatPill value={arrivingToday.length} label="Arriving" accent="var(--ds-red)" />
+        <StatPill value={arrivingToday.length} label="Arriving" accent="var(--ds-red)" Icon={LogIn} />
         <div className="w-px h-5 bg-line" />
-        <StatPill value={departingToday.length} label="Departing" accent="var(--ds-amber)" />
+        <StatPill value={departingToday.length} label="Departing" accent="var(--ds-amber)" Icon={LogOut} />
         <div className="w-px h-5 bg-line" />
-        <StatPill value={occupied.length} label="Occupied" accent="var(--ds-green)" />
+        <StatPill value={occupied.length} label="Occupied" accent="var(--ds-green)" Icon={BedDouble} />
       </div>
     </div>
   )
 }
 
-function StatPill({ value, label, accent }) {
+function StatPill({ value, label, accent, Icon }) {
   return (
-    <div className="flex items-baseline gap-1.5">
+    <div className="flex items-center gap-1.5">
+      <Icon size={13} style={{ color: accent }} strokeWidth={2} />
       <span className="text-xl font-bold tabular-nums leading-none" style={{ color: accent }}>
         {value}
       </span>

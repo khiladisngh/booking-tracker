@@ -1,3 +1,4 @@
+import { Plane, Accessibility, MapPin } from 'lucide-react'
 import { formatDate, getUrgency } from '../services/dateUtils'
 
 const STRIPE = {
@@ -11,7 +12,6 @@ const STRIPE = {
 export default function BookingCard({ booking, onTap }) {
   const urgency = getUrgency(booking.checkIn)
 
-  // Normalise remarks to array (handles both old string and new array format)
   const remarksList = Array.isArray(booking.remarks)
     ? booking.remarks.filter(Boolean)
     : booking.remarks ? [booking.remarks] : []
@@ -27,7 +27,6 @@ export default function BookingCard({ booking, onTap }) {
         urgency === 'past' ? 'opacity-50' : '',
       ].join(' ')}
     >
-      {/* Urgency stripe */}
       <span className={`absolute left-0 inset-y-0 w-[3px] ${STRIPE[urgency] ?? STRIPE.blue}`} />
 
       <div className="pl-4 pr-4 pt-3.5 pb-3">
@@ -41,6 +40,7 @@ export default function BookingCard({ booking, onTap }) {
 
         {/* Row 2 — location · date · nights */}
         <div className="flex items-center gap-1.5 text-[13px] text-lo mb-2">
+          <MapPin size={11} className="text-dim shrink-0" strokeWidth={2} />
           <span className="truncate max-w-[120px]">{booking.location}</span>
           <span className="text-dim shrink-0">·</span>
           <span className="shrink-0">{formatDate(booking.checkIn)}</span>
@@ -51,15 +51,25 @@ export default function BookingCard({ booking, onTap }) {
         {/* Row 3 — tags */}
         {(booking.helicopter || booking.assistance || activeCustomFlags.length > 0) && (
           <div className="flex gap-1.5 flex-wrap mb-1.5">
-            {booking.helicopter && <span className="tag tag-sky">Helicopter</span>}
-            {booking.assistance && <span className="tag tag-violet">Assistance</span>}
+            {booking.helicopter && (
+              <span className="tag tag-sky flex items-center gap-1">
+                <Plane size={10} strokeWidth={2} />
+                Helicopter
+              </span>
+            )}
+            {booking.assistance && (
+              <span className="tag tag-violet flex items-center gap-1">
+                <Accessibility size={10} strokeWidth={2} />
+                Assistance
+              </span>
+            )}
             {activeCustomFlags.map((f) => (
               <span key={f.id} className="tag tag-custom">{f.label}</span>
             ))}
           </div>
         )}
 
-        {/* Remarks bullets — show up to 2 */}
+        {/* Remarks — up to 2 */}
         {remarksList.length > 0 && (
           <ul className="mt-1 space-y-0.5">
             {remarksList.slice(0, 2).map((r, i) => (
