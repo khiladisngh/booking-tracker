@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { addDays, format, parseISO, differenceInDays } from 'date-fns'
+import { motion } from 'framer-motion'
 import { Mic } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useVoiceInput } from '../services/voiceInput'
@@ -23,18 +24,20 @@ function computeCheckOut(checkIn, nights) {
 function VoiceOverlay({ isListening, interimText, onStop }) {
   if (!isListening) return null
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-canvas/95 backdrop-blur-sm px-6">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg px-6">
       <div className="relative flex items-center justify-center mb-6">
         <span className="absolute w-24 h-24 rounded-full bg-accent/10 animate-ping" />
         <span className="absolute w-16 h-16 rounded-full bg-accent/15 animate-ping [animation-delay:150ms]" />
-        <button
+        <motion.button
           type="button"
           onClick={onStop}
-          className="relative z-10 w-20 h-20 rounded-full bg-accent flex items-center justify-center shadow-xl shadow-accent/25 active:scale-95 transition-transform"
+          whileTap={{ scale: 0.92 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="relative z-10 w-20 h-20 rounded-full bg-accent flex items-center justify-center shadow-xl shadow-accent/30"
           aria-label="Stop recording"
         >
           <Mic size={26} color="white" strokeWidth={1.8} />
-        </button>
+        </motion.button>
       </div>
       <p className="text-[15px] font-medium text-hi mb-2">Listening…</p>
       {interimText ? (
@@ -49,7 +52,7 @@ function VoiceOverlay({ isListening, interimText, onStop }) {
       <button
         type="button"
         onClick={onStop}
-        className="mt-8 px-6 py-2 rounded-full border border-line text-lo text-[13px] active:bg-raised transition-colors"
+        className="mt-8 px-6 py-2 rounded-full border border-white/20 text-lo text-[13px] active:bg-white/10 transition-colors"
       >
         Cancel
       </button>
@@ -63,17 +66,23 @@ function ParsedToast({ parsed, onDismiss }) {
   if (!parsed) return null
 
   const parts = []
-  if (parsed.location) parts.push(parsed.location)
-  if (parsed.room) parts.push(`Room ${parsed.room}`)
-  if (parsed.guestName) parts.push(parsed.guestName)
-  if (parsed.nights) parts.push(`${parsed.nights}n`)
+  if (parsed.location)   parts.push(parsed.location)
+  if (parsed.room)       parts.push(`Room ${parsed.room}`)
+  if (parsed.guestName)  parts.push(parsed.guestName)
+  if (parsed.nights)     parts.push(`${parsed.nights}n`)
   if (parsed.helicopter) parts.push('Helicopter')
   if (parsed.assistance) parts.push('Assistance')
 
   if (parts.length === 0) return null
 
   return (
-    <div className="bg-raised border border-accent/30 rounded-[12px] px-4 py-3 flex items-start gap-3">
+    <motion.div
+      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 36 }}
+      className="glass rounded-[14px] px-4 py-3 flex items-start gap-3"
+    >
       <span className="text-accent-hi text-[13px] shrink-0 mt-0.5">✓</span>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-medium text-hi">
@@ -89,42 +98,37 @@ function ParsedToast({ parsed, onDismiss }) {
       >
         ×
       </button>
-    </div>
+    </motion.div>
   )
 }
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AddBookingScreen({ onClose, initialValues }) {
-  const config = useStore((s) => s.config)
-  const bookings = useStore((s) => s.bookings)
+  const config     = useStore((s) => s.config)
+  const bookings   = useStore((s) => s.bookings)
   const addBooking = useStore((s) => s.addBooking)
 
   const initCheckIn = initialValues?.checkIn ?? tomorrow
-  const initNights = initialValues?.nights ?? 1
+  const initNights  = initialValues?.nights  ?? 1
 
-  const [location, setLocation] = useState(
-    initialValues?.location ?? initialValues?.locationId ?? ''
-  )
-  const [room, setRoom] = useState(initialValues?.room ?? '')
+  const [location, setLocation]   = useState(initialValues?.location ?? initialValues?.locationId ?? '')
+  const [room, setRoom]           = useState(initialValues?.room ?? '')
   const [guestName, setGuestName] = useState(initialValues?.guestName ?? '')
-  const [checkIn, setCheckIn] = useState(initCheckIn)
-  const [nights, setNights] = useState(String(initNights))
-  const [checkOut, setCheckOut] = useState(
-    initialValues?.checkOut ?? computeCheckOut(initCheckIn, initNights)
-  )
-  const [helicopter, setHelicopter] = useState(initialValues?.helicopter ?? false)
-  const [assistance, setAssistance] = useState(initialValues?.assistance ?? false)
+  const [checkIn, setCheckIn]     = useState(initCheckIn)
+  const [nights, setNights]       = useState(String(initNights))
+  const [checkOut, setCheckOut]   = useState(initialValues?.checkOut ?? computeCheckOut(initCheckIn, initNights))
+  const [helicopter, setHelicopter]   = useState(initialValues?.helicopter ?? false)
+  const [assistance, setAssistance]   = useState(initialValues?.assistance ?? false)
   const [customFlags, setCustomFlags] = useState(initialValues?.customFlags ?? [])
   const [remarks, setRemarks] = useState(() => {
     const r = initialValues?.remarks
     if (Array.isArray(r)) return r
     return r ? [r] : []
   })
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors]             = useState({})
   const [parsedResult, setParsedResult] = useState(null)
 
-  // Datalist suggestions from existing bookings
   const locationSuggestions = useMemo(
     () => [...new Set(bookings.map((b) => b.location).filter(Boolean))].sort(),
     [bookings]
@@ -167,7 +171,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           setNights(String(n))
           if (errors.nights) setErrors((p) => ({ ...p, nights: '' }))
         }
-      } catch {}
+      } catch {} // eslint-disable-line no-empty
     }
   }
 
@@ -178,23 +182,19 @@ export default function AddBookingScreen({ onClose, initialValues }) {
       const parsed = parseBookingCommand(text, config, locationSuggestions)
       let filled = 0
 
-      // Location: prefer config match (has room list), fall back to dynamic name
-      if (parsed.locationName) {
-        setLocation(parsed.locationName)
-        filled++
-      }
-      if (parsed.room) { setRoom(parsed.room); filled++ }
+      if (parsed.locationName) { setLocation(parsed.locationName); filled++ }
+      if (parsed.room)         { setRoom(parsed.room); filled++ }
       if (parsed.guestName !== undefined) { setGuestName(parsed.guestName); filled++ }
       if (parsed.checkIn !== undefined) {
         const ci = parsed.checkIn
         setCheckIn(ci)
-        const n = parsed.nights ?? Number(nights)
+        const n  = parsed.nights ?? Number(nights)
         const co = computeCheckOut(ci, n)
         if (co) setCheckOut(co)
         filled++
       }
       if (parsed.nights !== undefined) {
-        const n = Number(parsed.nights)
+        const n  = Number(parsed.nights)
         setNights(String(n))
         const ci = parsed.checkIn ?? checkIn
         const co = computeCheckOut(ci, n)
@@ -228,11 +228,11 @@ export default function AddBookingScreen({ onClose, initialValues }) {
 
   function validate() {
     const next = {}
-    if (!location.trim()) next.location = 'Enter a location'
-    if (!room.trim()) next.room = 'Enter a room'
-    if (!guestName.trim()) next.guestName = 'Guest name is required'
-    if (!checkIn) next.checkIn = 'Check-in date is required'
-    if (!nights || Number(nights) < 1) next.nights = 'At least 1 night'
+    if (!location.trim())              next.location  = 'Enter a location'
+    if (!room.trim())                  next.room      = 'Enter a room'
+    if (!guestName.trim())             next.guestName = 'Guest name is required'
+    if (!checkIn)                      next.checkIn   = 'Check-in date is required'
+    if (!nights || Number(nights) < 1) next.nights    = 'At least 1 night'
     return next
   }
 
@@ -242,18 +242,18 @@ export default function AddBookingScreen({ onClose, initialValues }) {
     const now = new Date().toISOString()
     addBooking({
       id: crypto.randomUUID(),
-      location: location.trim(),
-      room: room.trim(),
-      guestName: guestName.trim(),
+      location:    location.trim(),
+      room:        room.trim(),
+      guestName:   guestName.trim(),
       checkIn,
-      nights: Number(nights),
-      checkOut: checkOut || computeCheckOut(checkIn, nights) || '',
+      nights:      Number(nights),
+      checkOut:    checkOut || computeCheckOut(checkIn, nights) || '',
       helicopter,
       assistance,
       customFlags,
       remarks,
-      createdAt: now,
-      updatedAt: now,
+      createdAt:   now,
+      updatedAt:   now,
     })
     onClose()
   }
@@ -264,11 +264,11 @@ export default function AddBookingScreen({ onClose, initialValues }) {
 
       <div className="flex flex-col h-full bg-canvas">
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-line">
+        <div className="flex items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-white/10">
           <button
             type="button"
             onClick={onClose}
-            className="touch-target flex items-center justify-center text-lo w-10 h-10 rounded-[10px] active:bg-raised transition-colors"
+            className="touch-target flex items-center justify-center text-lo w-10 h-10 rounded-[10px] active:bg-white/10 transition-colors"
             aria-label="Go back"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -277,14 +277,16 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           </button>
           <h1 className="text-[15px] font-semibold text-hi flex-1">Add Booking</h1>
           {isSupported && (
-            <button
+            <motion.button
               type="button"
               onClick={start}
-              className="touch-target flex items-center justify-center w-10 h-10 rounded-[10px] bg-raised active:bg-overlay text-accent transition-colors"
+              whileTap={{ scale: 0.90 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="touch-target flex items-center justify-center w-10 h-10 rounded-[10px] glass text-accent"
               aria-label="Fill by voice"
             >
               <Mic size={18} strokeWidth={1.8} />
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -295,7 +297,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           )}
 
           {/* Location + Room */}
-          <div className="bg-surface rounded-[14px] border border-line p-4 space-y-4">
+          <div className="glass rounded-[16px] p-4 space-y-4">
             <div>
               <label className="block text-[12px] text-lo mb-1.5">Location</label>
               <input
@@ -342,7 +344,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           </div>
 
           {/* Guest + Dates */}
-          <div className="bg-surface rounded-[14px] border border-line p-4 space-y-4">
+          <div className="glass rounded-[16px] p-4 space-y-4">
             <div>
               <label className="block text-[12px] text-lo mb-1.5">Guest name</label>
               <input
@@ -401,7 +403,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           </div>
 
           {/* Flags */}
-          <div className="bg-surface rounded-[14px] border border-line p-4">
+          <div className="glass rounded-[16px] p-4">
             <FlagsEditor
               helicopter={helicopter}
               assistance={assistance}
@@ -411,7 +413,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           </div>
 
           {/* Remarks */}
-          <div className="bg-surface rounded-[14px] border border-line p-4">
+          <div className="glass rounded-[16px] p-4">
             <RemarksEditor remarks={remarks} onChange={setRemarks} />
           </div>
 
@@ -423,7 +425,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
         </div>
 
         {/* Save button */}
-        <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3 bg-canvas border-t border-line shrink-0">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3 bg-canvas border-t border-white/10 shrink-0">
           <button type="button" onClick={handleSave} className="btn-primary">
             Save Booking
           </button>
@@ -432,4 +434,3 @@ export default function AddBookingScreen({ onClose, initialValues }) {
     </>
   )
 }
-

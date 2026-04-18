@@ -10,14 +10,14 @@ export default function TodayBanner() {
   }
 
   return (
-    <div className="bg-surface rounded-[14px] border border-line px-4 py-3 flex items-center justify-between">
+    <div className="glass rounded-[16px] px-4 py-3 flex items-center justify-between">
       <span className="section-label">Status</span>
       <div className="flex items-center gap-5">
-        <StatPill value={arrivingToday.length} label="Arriving" accent="var(--ds-red)" Icon={LogIn} />
-        <div className="w-px h-5 bg-line" />
-        <StatPill value={departingToday.length} label="Departing" accent="var(--ds-amber)" Icon={LogOut} />
-        <div className="w-px h-5 bg-line" />
-        <StatPill value={occupied.length} label="Occupied" accent="var(--ds-green)" Icon={BedDouble} />
+        <StatPill value={arrivingToday.length}  label="Arriving"  accent="var(--ds-red)"   Icon={LogIn}    />
+        <div className="w-px h-5 bg-white/10" />
+        <StatPill value={departingToday.length} label="Departing" accent="var(--ds-amber)"  Icon={LogOut}   />
+        <div className="w-px h-5 bg-white/10" />
+        <StatPill value={occupied.length}       label="Occupied"  accent="var(--ds-green)"  Icon={BedDouble} />
       </div>
     </div>
   )

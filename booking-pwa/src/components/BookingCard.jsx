@@ -1,13 +1,16 @@
+import { motion } from 'framer-motion'
 import { Plane, Accessibility, MapPin } from 'lucide-react'
 import { formatDate, getUrgency } from '../services/dateUtils'
 
-const STRIPE = {
-  red:   'stripe-red',
-  amber: 'stripe-amber',
-  green: 'stripe-green',
-  blue:  'stripe-blue',
-  past:  'stripe-past',
+const GLOW = {
+  red:   'glow-red',
+  amber: 'glow-amber',
+  green: 'glow-green',
+  blue:  'glow-blue',
+  past:  'glow-past',
 }
+
+const SPRING = { type: 'spring', stiffness: 400, damping: 38 }
 
 export default function BookingCard({ booking, onTap }) {
   const urgency = getUrgency(booking.checkIn)
@@ -19,16 +22,16 @@ export default function BookingCard({ booking, onTap }) {
   const activeCustomFlags = (booking.customFlags ?? []).filter((f) => f.checked)
 
   return (
-    <button
+    <motion.button
       onClick={() => onTap?.(booking)}
+      whileTap={{ scale: 0.97 }}
+      transition={SPRING}
       className={[
-        'relative w-full text-left bg-surface rounded-[14px] border border-line',
-        'overflow-hidden transition-transform duration-[120ms] active:scale-[0.985]',
+        'glass relative w-full text-left rounded-[16px]',
+        GLOW[urgency] ?? GLOW.blue,
         urgency === 'past' ? 'opacity-50' : '',
       ].join(' ')}
     >
-      <span className={`absolute left-0 inset-y-0 w-[3px] ${STRIPE[urgency] ?? STRIPE.blue}`} />
-
       <div className="pl-4 pr-4 pt-3.5 pb-3">
         {/* Row 1 — name + room */}
         <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -86,6 +89,6 @@ export default function BookingCard({ booking, onTap }) {
           </ul>
         )}
       </div>
-    </button>
+    </motion.button>
   )
 }

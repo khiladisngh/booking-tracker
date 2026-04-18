@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { CloudUpload, CloudDownload, Trash2, Clock, CheckCircle2, AlertCircle, Wifi } from 'lucide-react'
 import {
   initGoogleAuth,
@@ -13,6 +14,8 @@ import {
 } from '../services/googleDrive'
 import { useStore } from '../store/useStore'
 
+const SPRING = { type: 'spring', stiffness: 380, damping: 36 }
+
 function formatBackupName(name) {
   const m = name.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})/)
   if (!m) return name
@@ -22,17 +25,17 @@ function formatBackupName(name) {
 }
 
 export default function BackupSheet({ isOpen, onClose }) {
-  const bookings = useStore((s) => s.bookings)
+  const bookings    = useStore((s) => s.bookings)
   const setBookings = useStore((s) => s.setBookings)
-  const backupTime = useStore((s) => s.backupTime)
+  const backupTime  = useStore((s) => s.backupTime)
   const setBackupTime = useStore((s) => s.setBackupTime)
 
   const [isConnected, setIsConnected] = useState(false)
-  const [backups, setBackups] = useState([])
-  const [status, setStatus] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [restoring, setRestoring] = useState(null)
-  const [deleting, setDeleting] = useState(null)
+  const [backups, setBackups]         = useState([])
+  const [status, setStatus]           = useState(null)
+  const [loading, setLoading]         = useState(false)
+  const [restoring, setRestoring]     = useState(null)
+  const [deleting, setDeleting]       = useState(null)
 
   const bookingsRef = useRef(bookings)
   useEffect(() => { bookingsRef.current = bookings }, [bookings])
@@ -56,14 +59,14 @@ export default function BackupSheet({ isOpen, onClose }) {
       try {
         await backupNow(bookingsRef.current)
         await refreshBackups()
-      } catch {}
+      } catch {} // eslint-disable-line no-empty
     }
   }, [backupTime, refreshBackups])
 
   useEffect(() => {
     if (!window.google) return
     initGoogleAuth({
-      onSignIn: () => { setIsConnected(true); runScheduledCheck() },
+      onSignIn:  () => { setIsConnected(true); runScheduledCheck() },
       onSignOut: () => { setIsConnected(false); setBackups([]) },
     })
     if (getAccessToken()) { setIsConnected(true); runScheduledCheck() }
@@ -137,30 +140,29 @@ export default function BackupSheet({ isOpen, onClose }) {
 
   return (
     <>
-      <div
+      {/* Overlay */}
+      <motion.div
         aria-hidden="true"
         onClick={isOpen ? onClose : undefined}
-        className={[
-          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-[300ms]',
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-        ].join(' ')}
+        animate={{ opacity: isOpen ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
       />
 
-      <div
+      {/* Sheet */}
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-label="Cloud Backup"
-        className={[
-          'fixed bottom-0 left-0 right-0 z-50 bg-surface rounded-t-[24px] border-t border-line',
-          'max-h-[85vh] flex flex-col transition-transform duration-[280ms]',
-          isOpen ? 'translate-y-0' : 'translate-y-full',
-        ].join(' ')}
-        style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+        animate={{ y: isOpen ? 0 : '100%' }}
+        transition={SPRING}
+        className="fixed bottom-0 left-0 right-0 z-50 glass-heavy rounded-t-[28px] max-h-[85vh] flex flex-col"
       >
         {/* Handle */}
         <button type="button" aria-label="Close sheet" onClick={onClose}
           className="flex justify-center pt-3 pb-1 w-full shrink-0 touch-target">
-          <span className="w-9 h-1 rounded-full bg-overlay" />
+          <span className="w-9 h-1 rounded-full bg-white/20" />
         </button>
 
         <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-8 pt-2 min-h-0 gap-4">
@@ -171,7 +173,7 @@ export default function BackupSheet({ isOpen, onClose }) {
           </div>
 
           {!gisAvailable && (
-            <div className="rounded-[12px] bg-raised border border-line p-4">
+            <div className="glass rounded-[14px] p-4">
               <p className="text-warn text-[13px] font-semibold mb-1">Google Client ID not configured</p>
               <p className="text-lo text-[12px]">
                 Set <span className="text-hi font-mono">VITE_GOOGLE_CLIENT_ID</span> in your{' '}
@@ -196,7 +198,7 @@ export default function BackupSheet({ isOpen, onClose }) {
           {gisAvailable && isConnected && (
             <>
               {/* Connected status */}
-              <div className="flex items-center justify-between rounded-[12px] bg-raised border border-line px-4 py-3">
+              <div className="glass rounded-[14px] px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Wifi size={14} className="text-ok" strokeWidth={2} />
                   <span className="text-[13px] text-hi">Google Drive connected</span>
@@ -208,7 +210,7 @@ export default function BackupSheet({ isOpen, onClose }) {
               </div>
 
               {/* Daily backup time */}
-              <div className="rounded-[12px] bg-raised border border-line px-4 py-3 flex items-center justify-between gap-4">
+              <div className="glass rounded-[14px] px-4 py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Clock size={15} className="text-lo shrink-0" strokeWidth={1.8} />
                   <div>
@@ -236,7 +238,7 @@ export default function BackupSheet({ isOpen, onClose }) {
                 <div className={`flex items-center gap-2 text-[13px] ${status.type === 'ok' ? 'text-ok' : 'text-urgent'}`}>
                   {status.type === 'ok'
                     ? <CheckCircle2 size={15} strokeWidth={2} />
-                    : <AlertCircle size={15} strokeWidth={2} />}
+                    : <AlertCircle  size={15} strokeWidth={2} />}
                   {status.msg}
                 </div>
               )}
@@ -248,7 +250,7 @@ export default function BackupSheet({ isOpen, onClose }) {
                   <ul className="space-y-2">
                     {backups.map((f) => (
                       <li key={f.id}
-                        className="flex items-center justify-between rounded-[12px] bg-raised border border-line px-4 py-3 gap-3">
+                        className="glass flex items-center justify-between rounded-[14px] px-4 py-3 gap-3">
                         <span className="text-[13px] text-hi truncate">{formatBackupName(f.name)}</span>
                         <div className="flex items-center gap-3 shrink-0">
                           <button type="button" onClick={() => handleRestore(f.id)}
@@ -278,7 +280,7 @@ export default function BackupSheet({ isOpen, onClose }) {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     </>
   )
 }

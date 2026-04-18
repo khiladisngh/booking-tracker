@@ -1,9 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { addDays, format, parseISO, differenceInDays } from 'date-fns'
+import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import { formatDate } from '../services/dateUtils'
 import RemarksEditor from './RemarksEditor'
 import FlagsEditor from './FlagsEditor'
+
+const SPRING = { type: 'spring', stiffness: 380, damping: 36 }
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
@@ -106,12 +109,12 @@ function computeCheckOut(checkIn, nights) {
 function EditMode({ booking, onSave, onCancel }) {
   const bookings = useStore((s) => s.bookings)
 
-  const [location, setLocation] = useState(booking.location ?? '')
-  const [room, setRoom] = useState(booking.room)
+  const [location, setLocation]   = useState(booking.location ?? '')
+  const [room, setRoom]           = useState(booking.room)
   const [guestName, setGuestName] = useState(booking.guestName)
-  const [checkIn, setCheckIn] = useState(booking.checkIn)
-  const [nights, setNights] = useState(String(booking.nights))
-  const [checkOut, setCheckOut] = useState(booking.checkOut)
+  const [checkIn, setCheckIn]     = useState(booking.checkIn)
+  const [nights, setNights]       = useState(String(booking.nights))
+  const [checkOut, setCheckOut]   = useState(booking.checkOut)
   const [helicopter, setHelicopter] = useState(booking.helicopter)
   const [assistance, setAssistance] = useState(booking.assistance)
   const [customFlags, setCustomFlags] = useState(booking.customFlags ?? [])
@@ -309,29 +312,23 @@ export default function BookingDetailSheet({ booking, onClose }) {
   return (
     <>
       {/* Overlay */}
-      <div
+      <motion.div
         aria-hidden="true"
         onClick={isOpen ? onClose : undefined}
-        className={[
-          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm',
-          'transition-opacity duration-[300ms]',
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-        ].join(' ')}
+        animate={{ opacity: isOpen ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
       />
 
       {/* Sheet */}
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-label={booking ? `Booking for ${booking.guestName}` : 'Booking details'}
-        className={[
-          'fixed bottom-0 left-0 right-0 z-50',
-          'bg-surface rounded-t-[24px] border-t border-line',
-          'max-h-[85vh] flex flex-col',
-          'transition-transform duration-[280ms]',
-          isOpen ? 'translate-y-0' : 'translate-y-full',
-        ].join(' ')}
-        style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+        animate={{ y: isOpen ? 0 : '100%' }}
+        transition={SPRING}
+        className="fixed bottom-0 left-0 right-0 z-50 glass-heavy rounded-t-[28px] max-h-[85vh] flex flex-col"
       >
         {/* Drag handle */}
         <button
@@ -340,7 +337,7 @@ export default function BookingDetailSheet({ booking, onClose }) {
           onClick={onClose}
           className="flex justify-center pt-3 pb-1 w-full shrink-0 touch-target"
         >
-          <span className="w-9 h-1 rounded-full bg-overlay" />
+          <span className="w-9 h-1 rounded-full bg-white/20" />
         </button>
 
         {/* Content */}
@@ -366,7 +363,7 @@ export default function BookingDetailSheet({ booking, onClose }) {
             />
           )}
         </div>
-      </div>
+      </motion.div>
     </>
   )
 }

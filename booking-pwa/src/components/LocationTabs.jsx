@@ -1,10 +1,13 @@
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
 
+const SPRING = { type: 'spring', stiffness: 420, damping: 38 }
+
 export default function LocationTabs() {
-  const bookings = useStore((s) => s.bookings)
-  const activeLocation = useStore((s) => s.activeLocation)
-  const setActiveLocation = useStore((s) => s.setActiveLocation)
+  const bookings            = useStore((s) => s.bookings)
+  const activeLocation      = useStore((s) => s.activeLocation)
+  const setActiveLocation   = useStore((s) => s.setActiveLocation)
 
   const uniqueLocations = useMemo(
     () => [...new Set(bookings.map((b) => b.location).filter(Boolean))].sort(),
@@ -21,15 +24,18 @@ export default function LocationTabs() {
           <button
             key={tab.id}
             onClick={() => setActiveLocation(tab.id)}
-            className={[
-              'h-8 px-4 rounded-full text-[13px] font-medium whitespace-nowrap',
-              'transition-colors duration-[120ms] focus-ring',
-              isActive
-                ? 'bg-accent text-white'
-                : 'bg-raised text-lo border border-line',
-            ].join(' ')}
+            className="relative h-8 px-4 rounded-full text-[13px] font-medium whitespace-nowrap focus-ring"
           >
-            {tab.name}
+            {isActive && (
+              <motion.span
+                layoutId="location-tab-bg"
+                className="absolute inset-0 rounded-full bg-accent"
+                transition={SPRING}
+              />
+            )}
+            <span className={`relative z-10 transition-colors duration-150 ${isActive ? 'text-white' : 'text-lo'}`}>
+              {tab.name}
+            </span>
           </button>
         )
       })}

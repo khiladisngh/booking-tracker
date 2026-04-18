@@ -1,11 +1,22 @@
+import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import LocationTabs from '../components/LocationTabs'
 import TodayBanner from '../components/TodayBanner'
 import BookingCard from '../components/BookingCard'
 import { groupBookings } from '../services/dateUtils'
 
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045 } },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 14 },
+  show:   { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 360, damping: 36 } },
+}
+
 export default function BookingsScreen({ onBookingTap }) {
-  const activeLocation = useStore((s) => s.activeLocation)
+  const activeLocation       = useStore((s) => s.activeLocation)
   const getBookingsByLocation = useStore((s) => s.getBookingsByLocation)
 
   const bookings = getBookingsByLocation(activeLocation)
@@ -27,10 +38,10 @@ export default function BookingsScreen({ onBookingTap }) {
             </div>
           ) : (
             <>
-              <Section title="Arriving today" bookings={arrivingToday} onTap={onBookingTap} />
+              <Section title="Arriving today"    bookings={arrivingToday}    onTap={onBookingTap} />
               <Section title="Arriving tomorrow" bookings={arrivingTomorrow} onTap={onBookingTap} />
-              <Section title="Upcoming" bookings={upcoming} onTap={onBookingTap} />
-              <Section title="Past" bookings={past} onTap={onBookingTap} />
+              <Section title="Upcoming"          bookings={upcoming}         onTap={onBookingTap} />
+              <Section title="Past"              bookings={past}             onTap={onBookingTap} />
             </>
           )}
         </div>
@@ -44,11 +55,18 @@ function Section({ title, bookings, onTap }) {
   return (
     <section>
       <h2 className="section-label mb-2">{title}</h2>
-      <div className="space-y-2">
+      <motion.div
+        className="space-y-2"
+        variants={listVariants}
+        initial="hidden"
+        animate="show"
+      >
         {bookings.map((b) => (
-          <BookingCard key={b.id} booking={b} onTap={onTap} />
+          <motion.div key={b.id} variants={itemVariants}>
+            <BookingCard booking={b} onTap={onTap} />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   )
 }
