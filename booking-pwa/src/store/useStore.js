@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { addDays, format } from 'date-fns'
 import appConfig from '../config/app.json'
 import { idbStorage, migrateFromLocalStorage } from '../db/idbStorage'
-import { scheduleAutoBackup } from '../services/googleDrive'
 
 const STORE_KEY = 'booking-store'
 
@@ -97,36 +96,24 @@ export const useStore = create(
       bookings: SEED_BOOKINGS,
       config: appConfig,
       activeLocation: 'all',
+      backupTime: '22:00',
 
       setActiveLocation: (location) => set({ activeLocation: location }),
-
-      setBookings: (bookings) => {
-        set({ bookings })
-        scheduleAutoBackup(bookings)
-      },
+      setBookings: (bookings) => set({ bookings }),
+      setBackupTime: (backupTime) => set({ backupTime }),
 
       addBooking: (booking) =>
-        set((state) => {
-          const bookings = [booking, ...state.bookings]
-          scheduleAutoBackup(bookings)
-          return { bookings }
-        }),
+        set((state) => ({ bookings: [booking, ...state.bookings] })),
 
       updateBooking: (id, updates) =>
-        set((state) => {
-          const bookings = state.bookings.map((b) =>
+        set((state) => ({
+          bookings: state.bookings.map((b) =>
             b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
-          )
-          scheduleAutoBackup(bookings)
-          return { bookings }
-        }),
+          ),
+        })),
 
       deleteBooking: (id) =>
-        set((state) => {
-          const bookings = state.bookings.filter((b) => b.id !== id)
-          scheduleAutoBackup(bookings)
-          return { bookings }
-        }),
+        set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) })),
 
       getBookingsByLocation: (location) => {
         const { bookings } = get()

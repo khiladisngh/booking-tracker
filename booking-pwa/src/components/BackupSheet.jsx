@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   initGoogleAuth,
   requestToken,
@@ -7,43 +7,63 @@ import {
   fetchBackupList,
   backupNow,
   restoreBackup,
+  shouldRunScheduledBackup,
 } from '../services/googleDrive'
 import { useStore } from '../store/useStore'
 
 function formatBackupName(name) {
-  // booking-backup-2026-04-18T12-30-00-000Z.json → 18 Apr 2026, 12:30
   const m = name.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})/)
   if (!m) return name
   const [, yr, mo, dy, hr, mn] = m
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${dy} ${months[parseInt(mo,10)-1]} ${yr}, ${hr}:${mn}`
+  return `${dy} ${months[parseInt(mo, 10) - 1]} ${yr}, ${hr}:${mn}`
 }
 
 export default function BackupSheet({ isOpen, onClose }) {
   const bookings = useStore((s) => s.bookings)
   const setBookings = useStore((s) => s.setBookings)
+  const backupTime = useStore((s) => s.backupTime)
+  const setBackupTime = useStore((s) => s.setBackupTime)
 
   const [isConnected, setIsConnected] = useState(false)
   const [backups, setBackups] = useState([])
-  const [status, setStatus] = useState(null) // { type: 'ok'|'err', msg }
+  const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [restoring, setRestoring] = useState(null)
+
+  const bookingsRef = useRef(bookings)
+  useEffect(() => { bookingsRef.current = bookings }, [bookings])
 
   const refreshBackups = useCallback(async () => {
     try {
       const list = await fetchBackupList()
       setBackups(list)
+      return list
     } catch {
       setBackups([])
+      return []
     }
   }, [])
+
+  // Scheduled backup check — runs on connect and every minute
+  const runScheduledCheck = useCallback(async () => {
+    const list = await fetchBackupList()
+    setBackups(list)
+    const lastISO = list[0]?.createdTime ?? null
+    if (shouldRunScheduledBackup(backupTime, lastISO)) {
+      try {
+        await backupNow(bookingsRef.current)
+        await refreshBackups()
+      } catch {}
+    }
+  }, [backupTime, refreshBackups])
 
   useEffect(() => {
     if (!window.google) return
     initGoogleAuth({
       onSignIn: () => {
         setIsConnected(true)
-        refreshBackups()
+        runScheduledCheck()
       },
       onSignOut: () => {
         setIsConnected(false)
@@ -52,9 +72,16 @@ export default function BackupSheet({ isOpen, onClose }) {
     })
     if (getAccessToken()) {
       setIsConnected(true)
-      refreshBackups()
+      runScheduledCheck()
     }
-  }, [refreshBackups])
+  }, [runScheduledCheck])
+
+  // Re-check schedule every 60s while connected
+  useEffect(() => {
+    if (!isConnected) return
+    const interval = setInterval(runScheduledCheck, 60_000)
+    return () => clearInterval(interval)
+  }, [isConnected, runScheduledCheck])
 
   useEffect(() => {
     if (isOpen && isConnected) refreshBackups()
@@ -96,9 +123,6 @@ export default function BackupSheet({ isOpen, onClose }) {
     try {
       const merged = await restoreBackup(fileId, bookings)
       setBookings(merged)
-      // Back up the merged state immediately
-      await backupNow(merged)
-      await refreshBackups()
       setStatus({ type: 'ok', msg: `Restored — ${merged.length} bookings.` })
     } catch (e) {
       setStatus({ type: 'err', msg: e.message ?? 'Restore failed.' })
@@ -107,11 +131,10 @@ export default function BackupSheet({ isOpen, onClose }) {
     }
   }
 
-  const gisAvailable = typeof window !== 'undefined' && !!import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const gisAvailable = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   return (
     <>
-      {/* Overlay */}
       <div
         aria-hidden="true"
         onClick={isOpen ? onClose : undefined}
@@ -122,7 +145,6 @@ export default function BackupSheet({ isOpen, onClose }) {
         ].join(' ')}
       />
 
-      {/* Sheet */}
       <div
         role="dialog"
         aria-modal="true"
@@ -136,7 +158,6 @@ export default function BackupSheet({ isOpen, onClose }) {
         ].join(' ')}
         style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
-        {/* Drag handle */}
         <button
           type="button"
           aria-label="Close sheet"
@@ -191,6 +212,20 @@ export default function BackupSheet({ isOpen, onClose }) {
                 </button>
               </div>
 
+              {/* Daily backup schedule */}
+              <div className="rounded-[12px] bg-raised border border-line px-4 py-3 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[13px] text-hi font-medium">Daily backup time</p>
+                  <p className="text-[12px] text-lo mt-0.5">Runs once per day automatically</p>
+                </div>
+                <input
+                  type="time"
+                  value={backupTime}
+                  onChange={(e) => setBackupTime(e.target.value)}
+                  className="field !w-auto text-[13px] px-2 py-1.5"
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={handleBackupNow}
@@ -219,7 +254,7 @@ export default function BackupSheet({ isOpen, onClose }) {
                         <button
                           type="button"
                           onClick={() => handleRestore(f.id)}
-                          disabled={restoring === f.id}
+                          disabled={!!restoring}
                           className="text-[12px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
                         >
                           {restoring === f.id ? 'Restoring…' : 'Restore'}

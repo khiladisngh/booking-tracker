@@ -171,14 +171,22 @@ export async function restoreBackup(fileId, localBookings) {
   return mergeBookings(localBookings, remote)
 }
 
-// ─── Auto-backup (debounced) ──────────────────────────────────────────────────
+// ─── Scheduled backup ─────────────────────────────────────────────────────────
 
-let _autoBackupTimer = null
+// Returns true if a scheduled backup should run now.
+// backupTime: "HH:MM", lastBackupISO: ISO string of most recent backup (or null)
+export function shouldRunScheduledBackup(backupTime, lastBackupISO) {
+  if (!_accessToken) return false
 
-export function scheduleAutoBackup(bookings) {
-  if (!_accessToken) return
-  clearTimeout(_autoBackupTimer)
-  _autoBackupTimer = setTimeout(() => {
-    backupNow(bookings).catch(() => {})
-  }, 3000)
+  const now = new Date()
+  const [h, m] = backupTime.split(':').map(Number)
+  const scheduledToday = new Date(now)
+  scheduledToday.setHours(h, m, 0, 0)
+
+  if (now < scheduledToday) return false // not yet time today
+
+  if (!lastBackupISO) return true // never backed up
+
+  const lastBackup = new Date(lastBackupISO)
+  return lastBackup < scheduledToday // backed up before today's scheduled time
 }
