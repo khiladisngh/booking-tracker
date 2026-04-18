@@ -1,7 +1,14 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { addDays, format } from 'date-fns'
 import appConfig from '../config/app.json'
+import { idbStorage, migrateFromLocalStorage } from '../db/idbStorage'
+import { scheduleAutoBackup } from '../services/googleDrive'
+
+const STORE_KEY = 'booking-store'
+
+// One-time migration from localStorage to IndexedDB on first load
+migrateFromLocalStorage(STORE_KEY)
 
 const today = new Date()
 const fmt = (d) => format(d, 'yyyy-MM-dd')
@@ -93,18 +100,33 @@ export const useStore = create(
 
       setActiveLocation: (location) => set({ activeLocation: location }),
 
+      setBookings: (bookings) => {
+        set({ bookings })
+        scheduleAutoBackup(bookings)
+      },
+
       addBooking: (booking) =>
-        set((state) => ({ bookings: [booking, ...state.bookings] })),
+        set((state) => {
+          const bookings = [booking, ...state.bookings]
+          scheduleAutoBackup(bookings)
+          return { bookings }
+        }),
 
       updateBooking: (id, updates) =>
-        set((state) => ({
-          bookings: state.bookings.map((b) =>
+        set((state) => {
+          const bookings = state.bookings.map((b) =>
             b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
-          ),
-        })),
+          )
+          scheduleAutoBackup(bookings)
+          return { bookings }
+        }),
 
       deleteBooking: (id) =>
-        set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) })),
+        set((state) => {
+          const bookings = state.bookings.filter((b) => b.id !== id)
+          scheduleAutoBackup(bookings)
+          return { bookings }
+        }),
 
       getBookingsByLocation: (location) => {
         const { bookings } = get()
@@ -129,7 +151,8 @@ export const useStore = create(
       },
     }),
     {
-      name: 'booking-store',
+      name: STORE_KEY,
+      storage: createJSONStorage(() => idbStorage),
       version: 2,
       migrate: (persistedState, fromVersion) => {
         if (fromVersion === 1) {

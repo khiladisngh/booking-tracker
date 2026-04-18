@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { useStore } from '../store/useStore'
+import BackupSheet from '../components/BackupSheet'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ export default function DashboardScreen() {
   const [notifPermission, setNotifPermission] = useState(() =>
     'Notification' in window ? Notification.permission : 'unsupported'
   )
+  const [backupOpen, setBackupOpen] = useState(false)
 
   const today = todayStr()
   const week = currentWeekBounds()
@@ -248,6 +250,28 @@ export default function DashboardScreen() {
           ))}
         </div>
       </section>
+
+      {/* Cloud Backup */}
+      <section aria-label="Cloud backup">
+        <h2 className="section-label mb-2">Cloud Backup</h2>
+        <button
+          type="button"
+          onClick={() => setBackupOpen(true)}
+          className="w-full bg-surface rounded-[14px] border border-line px-4 py-3 flex items-center justify-between touch-target"
+        >
+          <div className="flex items-center gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent" />
+            </svg>
+            <span className="text-[13px] text-hi">Backup &amp; Restore</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-lo" />
+          </svg>
+        </button>
+      </section>
+
+      <BackupSheet isOpen={backupOpen} onClose={() => setBackupOpen(false)} />
     </div>
   )
 }
