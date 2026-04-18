@@ -191,7 +191,6 @@ body {
 .glass {
   background: var(--ds-surface);
   backdrop-filter: var(--ds-blur-md);
-  -webkit-backdrop-filter: var(--ds-blur-md);
   border: 1px solid var(--ds-border);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -202,7 +201,6 @@ body {
 .glass-heavy {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: var(--ds-blur-lg);
-  -webkit-backdrop-filter: var(--ds-blur-lg);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
@@ -214,7 +212,6 @@ body {
   .glass {
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: var(--ds-blur-md);
-    -webkit-backdrop-filter: var(--ds-blur-md);
     border: 1px solid rgba(0, 0, 0, 0.07);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -225,7 +222,6 @@ body {
   .glass-heavy {
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: var(--ds-blur-lg);
-    -webkit-backdrop-filter: var(--ds-blur-lg);
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 1),
@@ -271,7 +267,6 @@ body {
   font-weight: 500;
   border: 1px solid;
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .tag-sky {
@@ -305,7 +300,6 @@ body {
 .card {
   background: var(--ds-surface);
   backdrop-filter: var(--ds-blur-md);
-  -webkit-backdrop-filter: var(--ds-blur-md);
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-r-lg);
   padding: 1rem;
@@ -333,7 +327,6 @@ body {
 .btn-ghost {
   background: var(--ds-surface);
   backdrop-filter: var(--ds-blur-sm);
-  -webkit-backdrop-filter: var(--ds-blur-sm);
   border: 1px solid var(--ds-border);
   color: var(--ds-text-lo);
   border-radius: var(--ds-r-md);
@@ -350,7 +343,6 @@ body {
 .btn-danger {
   background: color-mix(in srgb, var(--ds-red) 12%, transparent);
   backdrop-filter: var(--ds-blur-sm);
-  -webkit-backdrop-filter: var(--ds-blur-sm);
   border: 1px solid color-mix(in srgb, var(--ds-red) 35%, transparent);
   color: var(--ds-red);
   border-radius: var(--ds-r-md);
@@ -368,7 +360,6 @@ body {
 .field {
   background: var(--ds-raised);
   backdrop-filter: var(--ds-blur-sm);
-  -webkit-backdrop-filter: var(--ds-blur-sm);
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-r-sm);
   padding: 0.75rem 1rem;
