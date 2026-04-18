@@ -7,6 +7,11 @@
  */
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { clientsClaim } from 'workbox-core'
+
+// Take over immediately so published updates ship without waiting for all tabs to close.
+self.skipWaiting()
+clientsClaim()
 
 // Precache all assets emitted by Vite; self.__WB_MANIFEST is replaced at build time.
 precacheAndRoute(self.__WB_MANIFEST)
