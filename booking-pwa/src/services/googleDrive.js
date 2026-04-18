@@ -113,8 +113,7 @@ async function createBackup(bookings) {
 }
 
 async function downloadBackup(fileId) {
-  const res = await driveRequest(`/files/${fileId}?alt=media`)
-  return res.json()
+  return driveRequest(`/files/${fileId}?alt=media`)
 }
 
 async function deleteFile(fileId) {
