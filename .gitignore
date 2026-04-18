@@ -37,3 +37,6 @@ Thumbs.db
 
 # PWA / Service worker dev artefacts
 dev-dist/
+
+# Playwright MCP session cache
+.playwright-mcp/
