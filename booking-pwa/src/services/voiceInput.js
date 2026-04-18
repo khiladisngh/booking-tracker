@@ -1,33 +1,62 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+
+const IDLE_TIMEOUT_MS = 60_000
 
 export function useVoiceInput({ onResult } = {}) {
   const [isListening, setIsListening] = useState(false)
   const [interimText, setInterimText] = useState('')
+
   const recognitionRef = useRef(null)
   const finalRef = useRef('')
+  const activeRef = useRef(false)
+  const idleTimerRef = useRef(null)
+  const onResultRef = useRef(onResult)
+  // Forward ref so onend can call startInstance without stale closure
+  const startInstanceRef = useRef(null)
+
+  useEffect(() => { onResultRef.current = onResult }, [onResult])
 
   const isSupported = Boolean(
     typeof window !== 'undefined' &&
       (window.SpeechRecognition || window.webkitSpeechRecognition)
   )
 
-  const start = useCallback(() => {
-    if (!isSupported) return
+  function deliverResult() {
+    const text = finalRef.current.trim()
+    finalRef.current = ''
+    if (text) onResultRef.current?.(text)
+  }
+
+  function deactivate() {
+    activeRef.current = false
+    clearTimeout(idleTimerRef.current)
+    setIsListening(false)
+    setInterimText('')
+  }
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = setTimeout(() => {
+      if (activeRef.current) {
+        recognitionRef.current?.stop()
+        deactivate()
+        deliverResult()
+      }
+    }, IDLE_TIMEOUT_MS)
+  }
+
+  startInstanceRef.current = function startInstance() {
+    if (!activeRef.current || !isSupported) return
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    const recognition = new SR()
-    recognition.lang = 'en-IN'
-    recognition.continuous = false
-    recognition.interimResults = true
-    recognitionRef.current = recognition
-    finalRef.current = ''
+    const rec = new SR()
+    rec.lang = 'en-IN'
+    rec.continuous = false   // false is more reliable on mobile; we handle restart manually
+    rec.interimResults = true
+    recognitionRef.current = rec
 
-    recognition.onstart = () => {
-      setIsListening(true)
-      setInterimText('')
-    }
-
-    recognition.onresult = (event) => {
+    rec.onresult = (event) => {
+      resetIdleTimer()
       let interim = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i]
@@ -40,26 +69,45 @@ export function useVoiceInput({ onResult } = {}) {
       setInterimText(interim)
     }
 
-    recognition.onend = () => {
-      setIsListening(false)
+    rec.onend = () => {
       setInterimText('')
-      const text = finalRef.current.trim()
-      if (text) onResult?.(text)
-    }
-
-    recognition.onerror = (e) => {
-      if (e.error !== 'no-speech' && e.error !== 'aborted') {
-        console.warn('Speech error:', e.error)
+      if (activeRef.current) {
+        // Short silence ended the session — restart immediately
+        setTimeout(() => startInstanceRef.current?.(), 200)
+      } else {
+        setIsListening(false)
       }
-      setIsListening(false)
-      setInterimText('')
     }
 
-    recognition.start()
-  }, [isSupported, onResult])
+    rec.onerror = (e) => {
+      if (e.error === 'aborted') return
+      if (e.error === 'no-speech') return  // onend fires next, which restarts
+      console.warn('Speech recognition error:', e.error)
+      // Attempt recovery after non-fatal errors
+      if (activeRef.current) setTimeout(() => startInstanceRef.current?.(), 500)
+    }
+
+    try {
+      rec.start()
+      setIsListening(true)
+    } catch {
+      // Already running — ignore
+    }
+  }
+
+  const start = useCallback(() => {
+    if (!isSupported || activeRef.current) return
+    finalRef.current = ''
+    activeRef.current = true
+    resetIdleTimer()
+    startInstanceRef.current()
+  }, [isSupported])
 
   const stop = useCallback(() => {
+    if (!activeRef.current) return
     recognitionRef.current?.stop()
+    deactivate()
+    deliverResult()
   }, [])
 
   return { isListening, interimText, isSupported, start, stop }

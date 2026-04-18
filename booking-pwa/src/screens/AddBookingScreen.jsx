@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { addDays, format, parseISO, differenceInDays } from 'date-fns'
+import { Mic } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useVoiceInput } from '../services/voiceInput'
 import { parseBookingCommand } from '../services/nlpParser'
@@ -32,7 +33,7 @@ function VoiceOverlay({ isListening, interimText, onStop }) {
           className="relative z-10 w-20 h-20 rounded-full bg-accent flex items-center justify-center shadow-xl shadow-accent/25 active:scale-95 transition-transform"
           aria-label="Stop recording"
         >
-          <MicIcon size={26} />
+          <Mic size={26} color="white" strokeWidth={1.8} />
         </button>
       </div>
       <p className="text-[15px] font-medium text-hi mb-2">Listening…</p>
@@ -174,12 +175,13 @@ export default function AddBookingScreen({ onClose, initialValues }) {
 
   const handleVoiceResult = useCallback(
     (text) => {
-      const parsed = parseBookingCommand(text, config)
+      const parsed = parseBookingCommand(text, config, locationSuggestions)
       let filled = 0
 
-      if (parsed.locationId) {
-        const loc = config.locations.find((l) => l.id === parsed.locationId)
-        if (loc) { setLocation(loc.name); filled++ }
+      // Location: prefer config match (has room list), fall back to dynamic name
+      if (parsed.locationName) {
+        setLocation(parsed.locationName)
+        filled++
       }
       if (parsed.room) { setRoom(parsed.room); filled++ }
       if (parsed.guestName !== undefined) { setGuestName(parsed.guestName); filled++ }
@@ -203,13 +205,11 @@ export default function AddBookingScreen({ onClose, initialValues }) {
       if (parsed.assistance !== undefined) { setAssistance(parsed.assistance); filled++ }
 
       if (filled > 0) {
-        setParsedResult({ ...parsed, location: parsed.locationId
-          ? config.locations.find((l) => l.id === parsed.locationId)?.name
-          : undefined })
+        setParsedResult({ ...parsed, location: parsed.locationName })
         setTimeout(() => setParsedResult(null), 5000)
       }
     },
-    [config, checkIn, nights]
+    [config, locationSuggestions, checkIn, nights]
   )
 
   const { isListening, interimText, isSupported, start, stop } = useVoiceInput({
@@ -280,10 +280,10 @@ export default function AddBookingScreen({ onClose, initialValues }) {
             <button
               type="button"
               onClick={start}
-              className="touch-target flex items-center justify-center w-10 h-10 rounded-[10px] bg-raised active:bg-overlay text-accent-hi transition-colors"
+              className="touch-target flex items-center justify-center w-10 h-10 rounded-[10px] bg-raised active:bg-overlay text-accent transition-colors"
               aria-label="Fill by voice"
             >
-              <MicIcon size={18} />
+              <Mic size={18} strokeWidth={1.8} />
             </button>
           )}
         </div>
@@ -433,13 +433,3 @@ export default function AddBookingScreen({ onClose, initialValues }) {
   )
 }
 
-function MicIcon({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-      <line x1="8" y1="22" x2="16" y2="22" />
-    </svg>
-  )
-}
