@@ -174,13 +174,14 @@ function KillSwitchRow({ authConfig }) {
         onClick={toggle}
         disabled={saving}
         aria-label={enabled ? 'Disable viewer access' : 'Enable viewer access'}
-        className="relative w-[46px] h-[26px] rounded-full transition-colors duration-200 shrink-0"
-        style={{ background: enabled ? 'var(--ds-accent)' : 'rgba(255,255,255,0.15)' }}
+        className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200 shrink-0 overflow-hidden"
+        style={{ background: enabled ? 'var(--ds-accent)' : 'rgba(120,120,128,0.32)' }}
       >
         <motion.span
           animate={{ x: enabled ? 22 : 2 }}
           transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-          className="absolute top-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-sm"
+          className="absolute left-0 top-[2px] w-[27px] h-[27px] rounded-full bg-white"
+          style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.28)' }}
         />
       </button>
     </div>

@@ -468,66 +468,38 @@ body {
 
 /* ─── Passcode gate ───────────────────────────────────────────────────────── */
 
-/* Dark mode (default) */
-:root {
-  --gate-dot-empty: rgba(255, 255, 255, 0.18);
+/* Subtle scrim — lets the animated mesh background show through */
+.gate-scrim {
+  background: rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-.gate-overlay {
-  background: rgba(5, 8, 24, 0.94);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+/* Numpad keys — sit inside the glass-heavy card */
+.numkey {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
 }
 
-.gate-icon-wrap {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.gate-key {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f5f5f7;
-}
-
-.gate-key:active {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.gate-key-icon {
-  color: rgba(235, 235, 245, 0.65);
+.numkey:active {
+  background: var(--ds-overlay);
 }
 
 /* Light mode */
 @media (prefers-color-scheme: light) {
-  :root {
-    --gate-dot-empty: rgba(0, 0, 0, 0.15);
+  .gate-scrim {
+    background: rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
-  .gate-overlay {
-    background: rgba(240, 230, 211, 0.96);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  .numkey {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   }
 
-  .gate-icon-wrap {
-    background: rgba(255, 255, 255, 0.70);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  .gate-key {
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    color: #1c1c1e;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
-  }
-
-  .gate-key:active {
-    background: rgba(255, 255, 255, 0.95);
-  }
-
-  .gate-key-icon {
-    color: #3a3a3c;
+  .numkey:active {
+    background: rgba(255, 255, 255, 0.92);
   }
 }

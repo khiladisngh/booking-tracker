@@ -78,22 +78,26 @@ export default function ViewPasscodeGate({ children }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="gate-overlay fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
+            transition={{ duration: 0.25 }}
+            className="gate-scrim fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
             style={{
               paddingTop:    'env(safe-area-inset-top)',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
           >
             <motion.div
-              initial={{ scale: 0.92, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
+              initial={{ scale: 0.94, y: 24, opacity: 0 }}
+              animate={{ scale: 1,    y: 0,  opacity: 1 }}
+              exit={{    scale: 0.94, y: 12, opacity: 0 }}
               transition={SPRING}
-              className="w-full max-w-xs"
+              className="glass-heavy w-full max-w-xs rounded-[28px] px-6 pt-8 pb-7"
             >
               {/* Header icon */}
               <div className="flex justify-center mb-5">
-                <div className="gate-icon-wrap w-14 h-14 rounded-full flex items-center justify-center">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--ds-overlay)', border: '1px solid var(--ds-border)' }}
+                >
                   {killSwitchOn
                     ? <ShieldAlert size={24} strokeWidth={1.8} className="text-accent" />
                     : <Lock        size={22} strokeWidth={1.8} className="text-accent" />
@@ -121,7 +125,7 @@ export default function ViewPasscodeGate({ children }) {
                     key={i}
                     animate={{
                       scale: digits.length === i + 1 ? [1, 1.25, 1] : 1,
-                      background: i < digits.length ? 'var(--ds-accent)' : 'var(--gate-dot-empty)',
+                      background: i < digits.length ? 'var(--ds-accent)' : 'var(--ds-border)',
                     }}
                     transition={{ duration: 0.18 }}
                     className="w-3.5 h-3.5 rounded-full"
@@ -145,7 +149,7 @@ export default function ViewPasscodeGate({ children }) {
               </div>
 
               {/* NumPad */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 {PAD_KEYS.flat().map((key) => (
                   <NumKey key={key} value={key} onPress={handleKey} />
                 ))}
@@ -165,10 +169,10 @@ function NumKey({ value, onPress }) {
         whileTap={{ scale: 0.88 }}
         transition={{ type: 'spring', stiffness: 420, damping: 38 }}
         onClick={() => onPress('clear')}
-        className="gate-key h-14 rounded-[16px] flex items-center justify-center transition-colors"
+        className="numkey h-14 rounded-[16px] flex items-center justify-center transition-colors"
         aria-label="Clear"
       >
-        <Delete size={20} strokeWidth={1.8} className="gate-key-icon" />
+        <Delete size={20} strokeWidth={1.8} className="text-lo" />
       </motion.button>
     )
   }
@@ -193,7 +197,7 @@ function NumKey({ value, onPress }) {
       whileTap={{ scale: 0.88 }}
       transition={{ type: 'spring', stiffness: 420, damping: 38 }}
       onClick={() => onPress(value)}
-      className="gate-key h-14 rounded-[16px] text-[22px] font-semibold transition-colors"
+      className="numkey h-14 rounded-[16px] text-[22px] font-semibold text-hi transition-colors"
       aria-label={value}
     >
       {value}
