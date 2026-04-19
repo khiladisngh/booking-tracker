@@ -175,7 +175,7 @@ function KillSwitchRow({ authConfig }) {
         disabled={saving}
         aria-label={enabled ? 'Disable viewer access' : 'Enable viewer access'}
         className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200 shrink-0 overflow-hidden"
-        style={{ background: enabled ? 'var(--ds-accent)' : 'rgba(120,120,128,0.32)' }}
+        style={{ background: enabled ? 'var(--ds-accent)' : 'var(--toggle-off)' }}
       >
         <motion.span
           animate={{ x: enabled ? 22 : 2 }}

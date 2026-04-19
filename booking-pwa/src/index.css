@@ -468,6 +468,14 @@ body {
 
 /* ─── Passcode gate ───────────────────────────────────────────────────────── */
 
+/* ─── Toggle track ────────────────────────────────────────────────────────── */
+:root          { --toggle-off: rgba(120, 120, 128, 0.38); }
+@media (prefers-color-scheme: light) {
+  :root        { --toggle-off: #c7c7cc; }
+}
+
+/* ─── Passcode gate ───────────────────────────────────────────────────────── */
+
 /* Subtle scrim — lets the animated mesh background show through */
 .gate-scrim {
   background: rgba(0, 0, 0, 0.30);
