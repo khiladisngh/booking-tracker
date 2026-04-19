@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Checkbox from './Checkbox'
 
 export default function FlagsEditor({ helicopter, assistance, customFlags, onChange }) {
@@ -8,6 +9,10 @@ export default function FlagsEditor({ helicopter, assistance, customFlags, onCha
 
   function emit(updates) {
     onChange({ helicopter, assistance, customFlags, ...updates })
+  }
+
+  function emitHelicopter(heliUpdates) {
+    emit({ helicopter: { ...helicopter, ...heliUpdates } })
   }
 
   function handleCustomToggle(id, checked) {
@@ -38,13 +43,54 @@ export default function FlagsEditor({ helicopter, assistance, customFlags, onCha
       <label className="block text-[12px] text-lo mb-1.5">Flags</label>
       <div className="bg-raised rounded-[8px] border border-line overflow-hidden">
         <div className="divide-y divide-subtle">
-          <div className="px-3 py-2.5">
-            <Checkbox
-              checked={helicopter}
-              onChange={(v) => emit({ helicopter: v })}
-              label="Helicopter ticket"
-            />
+          {/* Helicopter — checkbox + expandable date/tickets */}
+          <div>
+            <div className="px-3 py-2.5">
+              <Checkbox
+                checked={helicopter.enabled}
+                onChange={(v) => emitHelicopter({ enabled: v })}
+                label="Helicopter ticket"
+              />
+            </div>
+            <AnimatePresence initial={false}>
+              {helicopter.enabled && (
+                <motion.div
+                  key="heli-fields"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-3 pb-3 pt-2.5 space-y-2.5 border-t border-subtle">
+                    <div>
+                      <label className="block text-[12px] text-lo mb-1.5">Helicopter date</label>
+                      <input
+                        type="date"
+                        value={helicopter.date}
+                        onChange={(e) => emitHelicopter({ date: e.target.value })}
+                        className="field"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-lo mb-1.5">Tickets</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={helicopter.tickets}
+                        onChange={(e) =>
+                          emitHelicopter({ tickets: Math.min(10, Math.max(1, Number(e.target.value) || 1)) })
+                        }
+                        className="field"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+
           <div className="px-3 py-2.5">
             <Checkbox
               checked={assistance}

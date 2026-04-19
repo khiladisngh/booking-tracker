@@ -15,7 +15,7 @@ export function generateICS(bookings) {
     const summary   = escapeICS(`${b.guestName} — Room ${b.room}`)
     const location  = escapeICS(b.location)
     const descParts = [
-      b.helicopter && 'Helicopter',
+      b.helicopter?.enabled && 'Helicopter',
       b.assistance && 'Assistance required',
       ...(b.customFlags?.filter((f) => f.checked).map((f) => f.label) ?? []),
       ...(b.remarks ?? []),

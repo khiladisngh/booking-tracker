@@ -6,6 +6,7 @@ import { formatDate } from '../services/dateUtils'
 import RemarksEditor from './RemarksEditor'
 import FlagsEditor from './FlagsEditor'
 import { useEditModeContext } from '../context/EditModeContext'
+import { heliTagText } from '../services/bookingUtils'
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 36 }
 
@@ -37,9 +38,11 @@ function ViewMode({ booking, onEdit, onRequestDelete }) {
         </span>
       </div>
 
-      {(booking.helicopter || booking.assistance || activeCustomFlags.length > 0) && (
+      {(booking.helicopter?.enabled || booking.assistance || activeCustomFlags.length > 0) && (
         <div className="flex gap-2 mt-4 flex-wrap">
-          {booking.helicopter && <span className="tag tag-sky">Helicopter</span>}
+          {booking.helicopter?.enabled && (
+            <span className="tag tag-sky">{heliTagText(booking.helicopter)}</span>
+          )}
           {booking.assistance && <span className="tag tag-violet">Assistance</span>}
           {activeCustomFlags.map((f) => (
             <span key={f.id} className="tag tag-custom">{f.label}</span>
@@ -119,7 +122,9 @@ function EditMode({ booking, onSave, onCancel }) {
   const [checkIn, setCheckIn]     = useState(booking.checkIn)
   const [nights, setNights]       = useState(String(booking.nights))
   const [checkOut, setCheckOut]   = useState(booking.checkOut)
-  const [helicopter, setHelicopter] = useState(booking.helicopter)
+  const [helicopter, setHelicopter] = useState(
+    booking.helicopter ?? { enabled: false, date: '', tickets: 1 }
+  )
   const [assistance, setAssistance] = useState(booking.assistance)
   const [customFlags, setCustomFlags] = useState(booking.customFlags ?? [])
   const [remarks, setRemarks] = useState(() => {

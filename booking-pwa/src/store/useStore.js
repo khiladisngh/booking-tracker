@@ -21,7 +21,7 @@ const SEED_BOOKINGS = [
     checkIn: fmt(addDays(today, 1)),
     nights: 3,
     checkOut: fmt(addDays(today, 4)),
-    helicopter: true,
+    helicopter: { enabled: true, date: '', tickets: 1 },
     assistance: false,
     customFlags: [],
     remarks: ['Needs ground floor room'],
@@ -36,7 +36,7 @@ const SEED_BOOKINGS = [
     checkIn: fmt(addDays(today, 1)),
     nights: 2,
     checkOut: fmt(addDays(today, 3)),
-    helicopter: false,
+    helicopter: { enabled: false, date: '', tickets: 1 },
     assistance: true,
     customFlags: [],
     remarks: [],
@@ -51,7 +51,7 @@ const SEED_BOOKINGS = [
     checkIn: fmt(today),
     nights: 4,
     checkOut: fmt(addDays(today, 4)),
-    helicopter: false,
+    helicopter: { enabled: false, date: '', tickets: 1 },
     assistance: false,
     customFlags: [],
     remarks: ['Anniversary trip'],
@@ -66,7 +66,7 @@ const SEED_BOOKINGS = [
     checkIn: fmt(addDays(today, 3)),
     nights: 5,
     checkOut: fmt(addDays(today, 8)),
-    helicopter: true,
+    helicopter: { enabled: true, date: '', tickets: 2 },
     assistance: false,
     customFlags: [],
     remarks: [],
@@ -81,7 +81,7 @@ const SEED_BOOKINGS = [
     checkIn: fmt(addDays(today, -2)),
     nights: 3,
     checkOut: fmt(addDays(today, 1)),
-    helicopter: false,
+    helicopter: { enabled: false, date: '', tickets: 1 },
     assistance: false,
     customFlags: [],
     remarks: ['Late checkout requested'],
@@ -140,13 +140,15 @@ export const useStore = create(
     {
       name: STORE_KEY,
       storage: createJSONStorage(() => idbStorage),
-      version: 2,
+      version: 3,
       migrate: (persistedState, fromVersion) => {
-        if (fromVersion === 1) {
+        let state = persistedState
+
+        if (fromVersion < 2) {
           const locationMap = { shimla: 'Shimla', manali: 'Manali' }
-          return {
-            ...persistedState,
-            bookings: (persistedState.bookings ?? []).map((b) => ({
+          state = {
+            ...state,
+            bookings: (state.bookings ?? []).map((b) => ({
               ...b,
               location: locationMap[b.locationId] ?? b.locationId ?? '',
               remarks:
@@ -157,7 +159,20 @@ export const useStore = create(
             })),
           }
         }
-        return persistedState
+
+        if (fromVersion < 3) {
+          state = {
+            ...state,
+            bookings: (state.bookings ?? []).map((b) => ({
+              ...b,
+              helicopter: typeof b.helicopter === 'boolean'
+                ? { enabled: b.helicopter, date: '', tickets: 1 }
+                : (b.helicopter ?? { enabled: false, date: '', tickets: 1 }),
+            })),
+          }
+        }
+
+        return state
       },
     }
   )

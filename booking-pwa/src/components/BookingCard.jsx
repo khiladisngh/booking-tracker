@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Plane, Accessibility, MapPin } from 'lucide-react'
 import { formatDate, getUrgency } from '../services/dateUtils'
+import { heliTagText } from '../services/bookingUtils'
 
 const GLOW = {
   red:   'glow-red',
@@ -52,12 +53,12 @@ export default function BookingCard({ booking, onTap }) {
         </div>
 
         {/* Row 3 — tags */}
-        {(booking.helicopter || booking.assistance || activeCustomFlags.length > 0) && (
+        {(booking.helicopter?.enabled || booking.assistance || activeCustomFlags.length > 0) && (
           <div className="flex gap-1.5 flex-wrap mb-1.5">
-            {booking.helicopter && (
+            {booking.helicopter?.enabled && (
               <span className="tag tag-sky flex items-center gap-1">
                 <Plane size={10} strokeWidth={2} />
-                Helicopter
+                {heliTagText(booking.helicopter)}
               </span>
             )}
             {booking.assistance && (

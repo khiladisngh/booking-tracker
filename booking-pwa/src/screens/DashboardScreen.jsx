@@ -212,7 +212,7 @@ export default function DashboardScreen() {
 
   const thisWeekCount  = bookings.filter((b) => b.checkIn >= week.start  && b.checkIn <= week.end).length
   const thisMonthCount = bookings.filter((b) => b.checkIn >= month.start && b.checkIn <= month.end).length
-  const helicopterCount = bookings.filter((b) => b.helicopter === true && b.checkIn >= today).length
+  const helicopterCount = bookings.filter((b) => b.helicopter?.enabled === true && b.checkIn >= today).length
   const occupiedNow     = bookings.filter((b) => b.checkIn <= today && b.checkOut > today).length
 
   const upcomingReminders = buildUpcomingReminders(bookings)

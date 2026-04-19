@@ -108,8 +108,56 @@ export function parseBookingCommand(text, config, knownLocations = []) {
     }
   }
 
-  // ── Boolean flags ───────────────────────────────────────────────────────────
-  if (/helicopter/.test(t)) result.helicopter = true
+  // ── Helicopter flag + date + tickets ────────────────────────────────────────
+  if (/helicopter/.test(t)) {
+    const heli = { enabled: true, date: '', tickets: 1 }
+
+    // Ticket count — look in a window around "helicopter"
+    const heliIdx = t.indexOf('helicopter')
+    const heliCtx = t.slice(Math.max(0, heliIdx - 20), heliIdx + 60)
+    const ticketDigit = heliCtx.match(/(\d+)\s+tickets?/)
+    const ticketWord  = heliCtx.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+tickets?/)
+    if (ticketDigit)     heli.tickets = Math.min(10, Math.max(1, parseInt(ticketDigit[1], 10)))
+    else if (ticketWord) heli.tickets = Math.min(10, WORD_NUMS[ticketWord[1]] ?? 1)
+
+    // Helicopter date — look in text after "helicopter"
+    const afterHeli = t.slice(heliIdx)
+    const monthNums = { january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12 }
+    const now = new Date()
+
+    if (afterHeli.includes('day after tomorrow')) {
+      heli.date = format(addDays(now, 2), 'yyyy-MM-dd')
+    } else if (afterHeli.includes('tomorrow')) {
+      heli.date = format(addDays(now, 1), 'yyyy-MM-dd')
+    } else if (afterHeli.includes('today') || afterHeli.includes('tonight')) {
+      heli.date = format(now, 'yyyy-MM-dd')
+    } else {
+      let hDay = null, hMon = null
+      const dmM = afterHeli.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/)
+      const mdM = afterHeli.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?\b/)
+      if (dmM)      { hDay = parseInt(dmM[1], 10); hMon = monthNums[dmM[2]] }
+      else if (mdM) { hDay = parseInt(mdM[2], 10); hMon = monthNums[mdM[1]] }
+
+      if (hDay && hMon) {
+        let year = now.getFullYear()
+        const candidate = new Date(year, hMon - 1, hDay)
+        if (candidate < now) year++
+        heli.date = format(new Date(year, hMon - 1, hDay), 'yyyy-MM-dd')
+      } else {
+        const ordM = afterHeli.match(/\bthe\s+(\d{1,2})(?:st|nd|rd|th)\b|\b(\d{1,2})(?:st|nd|rd|th)\b/)
+        if (ordM) {
+          hDay = parseInt(ordM[1] ?? ordM[2], 10)
+          const candidate = new Date(now.getFullYear(), now.getMonth(), hDay)
+          if (candidate <= now) candidate.setMonth(candidate.getMonth() + 1)
+          heli.date = format(candidate, 'yyyy-MM-dd')
+        }
+      }
+    }
+
+    result.helicopter = heli
+  }
+
+  // ── Assistance flag ──────────────────────────────────────────────────────────
   if (/\b(assistance|wheelchair|disabled|mobility)\b/.test(t)) result.assistance = true
 
   // ── Guest name ──────────────────────────────────────────────────────────────
