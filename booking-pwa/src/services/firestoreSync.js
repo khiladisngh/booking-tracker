@@ -1,0 +1,74 @@
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  getDocs,
+} from 'firebase/firestore'
+import { db } from './firebase'
+
+const bookingsCol = collection(db, 'bookings')
+
+export function subscribeToBookings(callback) {
+  let unsub = () => {}
+  let cancelled = false
+
+  function attach() {
+    unsub = onSnapshot(
+      bookingsCol,
+      (snapshot) => { callback(snapshot.docs.map((d) => d.data())) },
+      (err) => {
+        // IndexedDB persistence can fail in multi-frame dev environments.
+        // Firestore falls back to network-only automatically; retry the listener.
+        if (cancelled) return
+        console.warn('[firestore] snapshot error, retrying in 2s…', err.code)
+        setTimeout(() => { if (!cancelled) attach() }, 2000)
+      }
+    )
+  }
+
+  attach()
+  return () => { cancelled = true; unsub() }
+}
+
+export function addBookingToFirestore(booking) {
+  return setDoc(doc(db, 'bookings', booking.id), booking)
+}
+
+export function updateBookingInFirestore(id, updates) {
+  return updateDoc(doc(db, 'bookings', id), {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export function deleteBookingFromFirestore(id) {
+  return deleteDoc(doc(db, 'bookings', id))
+}
+
+export function batchLinkBookings(roomId, heliId) {
+  const ts    = new Date().toISOString()
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'bookings', roomId), { linkedHelicopterId: heliId, updatedAt: ts })
+  batch.update(doc(db, 'bookings', heliId), { linkedRoomId: roomId,       updatedAt: ts })
+  return batch.commit()
+}
+
+export function batchUnlinkBookings(roomId, heliId) {
+  const ts    = new Date().toISOString()
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'bookings', roomId), { linkedHelicopterId: null, updatedAt: ts })
+  batch.update(doc(db, 'bookings', heliId), { linkedRoomId: null,       updatedAt: ts })
+  return batch.commit()
+}
+
+export async function seedIfEmpty(seedBookings) {
+  const snapshot = await getDocs(bookingsCol)
+  if (!snapshot.empty) return
+  const batch = writeBatch(db)
+  seedBookings.forEach((b) => batch.set(doc(db, 'bookings', b.id), b))
+  await batch.commit()
+}

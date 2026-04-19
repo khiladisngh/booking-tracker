@@ -1,17 +1,18 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 import { addDays, format } from 'date-fns'
 import appConfig from '../config/app.json'
-import { idbStorage, migrateFromLocalStorage } from '../db/idbStorage'
-
-const STORE_KEY = 'booking-store'
-
-migrateFromLocalStorage(STORE_KEY)
+import {
+  addBookingToFirestore,
+  updateBookingInFirestore,
+  deleteBookingFromFirestore,
+  batchLinkBookings,
+  batchUnlinkBookings,
+} from '../services/firestoreSync'
 
 const today = new Date()
-const fmt = (d) => format(d, 'yyyy-MM-dd')
+const fmt   = (d) => format(d, 'yyyy-MM-dd')
 
-const SEED_BOOKINGS = [
+export const SEED_BOOKINGS = [
   {
     id: 'seed-1',
     type: 'room',
@@ -128,142 +129,96 @@ const SEED_BOOKINGS = [
   },
 ]
 
-export const useStore = create(
-  persist(
-    (set, get) => ({
-      bookings: SEED_BOOKINGS,
-      config: appConfig,
-      activeLocation: 'all',
-      backupTime: '22:00',
+export const useStore = create((set, get) => ({
+  bookings:       [],
+  config:         appConfig,
+  activeLocation: 'all',
+  pendingWrites:  0,
+  backupTime:     '22:00',
 
-      setActiveLocation: (location) => set({ activeLocation: location }),
-      setBookings: (bookings) => set({ bookings }),
-      setBackupTime: (backupTime) => set({ backupTime }),
+  setActiveLocation: (location) => set({ activeLocation: location }),
+  setBookings:       (bookings) => set({ bookings }),
+  setBackupTime:     (backupTime) => set({ backupTime }),
 
-      addBooking: (booking) =>
-        set((state) => ({ bookings: [booking, ...state.bookings] })),
+  _incPending: () => set((s) => ({ pendingWrites: s.pendingWrites + 1 })),
+  _decPending: () => set((s) => ({ pendingWrites: Math.max(0, s.pendingWrites - 1) })),
 
-      updateBooking: (id, updates) =>
-        set((state) => ({
-          bookings: state.bookings.map((b) =>
-            b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
-          ),
-        })),
+  addBooking: (booking) => {
+    const { _incPending, _decPending } = get()
+    set((s) => ({ bookings: [booking, ...s.bookings] }))
+    _incPending()
+    addBookingToFirestore(booking).finally(_decPending)
+  },
 
-      deleteBooking: (id) =>
-        set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) })),
+  updateBooking: (id, updates) => {
+    const { _incPending, _decPending } = get()
+    set((s) => ({
+      bookings: s.bookings.map((b) =>
+        b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
+      ),
+    }))
+    _incPending()
+    updateBookingInFirestore(id, updates).finally(_decPending)
+  },
 
-      // Link a room booking and a helicopter booking to each other.
-      linkBookings: (roomId, heliId) =>
-        set((state) => ({
-          bookings: state.bookings.map((b) => {
-            const ts = new Date().toISOString()
-            if (b.id === roomId) return { ...b, linkedHelicopterId: heliId, updatedAt: ts }
-            if (b.id === heliId) return { ...b, linkedRoomId: roomId, updatedAt: ts }
-            return b
-          }),
-        })),
+  deleteBooking: (id) => {
+    const { _incPending, _decPending } = get()
+    set((s) => ({ bookings: s.bookings.filter((b) => b.id !== id) }))
+    _incPending()
+    deleteBookingFromFirestore(id).finally(_decPending)
+  },
 
-      // Remove the link between a room booking and a helicopter booking.
-      unlinkBookings: (roomId, heliId) =>
-        set((state) => ({
-          bookings: state.bookings.map((b) => {
-            const ts = new Date().toISOString()
-            if (b.id === roomId) return { ...b, linkedHelicopterId: null, updatedAt: ts }
-            if (b.id === heliId) return { ...b, linkedRoomId: null, updatedAt: ts }
-            return b
-          }),
-        })),
+  linkBookings: (roomId, heliId) => {
+    const { _incPending, _decPending } = get()
+    const ts = new Date().toISOString()
+    set((s) => ({
+      bookings: s.bookings.map((b) => {
+        if (b.id === roomId) return { ...b, linkedHelicopterId: heliId, updatedAt: ts }
+        if (b.id === heliId) return { ...b, linkedRoomId: roomId,       updatedAt: ts }
+        return b
+      }),
+    }))
+    _incPending()
+    batchLinkBookings(roomId, heliId).finally(_decPending)
+  },
 
-      getBookingsByLocation: (location) => {
-        const { bookings } = get()
-        if (location === 'all') return bookings
-        return bookings.filter((b) => b.location === location)
-      },
+  unlinkBookings: (roomId, heliId) => {
+    const { _incPending, _decPending } = get()
+    const ts = new Date().toISOString()
+    set((s) => ({
+      bookings: s.bookings.map((b) => {
+        if (b.id === roomId) return { ...b, linkedHelicopterId: null, updatedAt: ts }
+        if (b.id === heliId) return { ...b, linkedRoomId: null,       updatedAt: ts }
+        return b
+      }),
+    }))
+    _incPending()
+    batchUnlinkBookings(roomId, heliId).finally(_decPending)
+  },
 
-      getUniqueLocations: () => {
-        const { bookings } = get()
-        return [...new Set(bookings.filter((b) => b.type === 'room').map((b) => b.location).filter(Boolean))].sort()
-      },
+  getBookingsByLocation: (location) => {
+    const { bookings } = get()
+    if (location === 'all') return bookings
+    return bookings.filter((b) => b.location === location)
+  },
 
-      getTodayStats: () => {
-        const { bookings } = get()
-        const todayStr = fmt(new Date())
-        const roomBookings = bookings.filter((b) => b.type === 'room')
-        const arrivingToday = roomBookings.filter((b) => b.checkIn === todayStr)
-        const departingToday = roomBookings.filter((b) => b.checkOut === todayStr)
-        const occupied = roomBookings.filter(
-          (b) => b.checkIn <= todayStr && b.checkOut > todayStr
-        )
-        return { arrivingToday, departingToday, occupied }
-      },
-    }),
-    {
-      name: STORE_KEY,
-      storage: createJSONStorage(() => idbStorage),
-      version: 5,
-      migrate: (persistedState, fromVersion) => {
-        let state = persistedState
+  getUniqueLocations: () => {
+    const { bookings } = get()
+    return [
+      ...new Set(
+        bookings.filter((b) => b.type === 'room').map((b) => b.location).filter(Boolean)
+      ),
+    ].sort()
+  },
 
-        if (fromVersion < 2) {
-          const locationMap = { shimla: 'Shimla', manali: 'Manali' }
-          state = {
-            ...state,
-            bookings: (state.bookings ?? []).map((b) => ({
-              ...b,
-              location: locationMap[b.locationId] ?? b.locationId ?? '',
-              remarks:
-                typeof b.remarks === 'string'
-                  ? b.remarks ? [b.remarks] : []
-                  : (b.remarks ?? []),
-              customFlags: b.customFlags ?? [],
-            })),
-          }
-        }
-
-        if (fromVersion < 3) {
-          state = {
-            ...state,
-            bookings: (state.bookings ?? []).map((b) => ({
-              ...b,
-              helicopter: typeof b.helicopter === 'boolean'
-                ? { enabled: b.helicopter, date: '', tickets: 1 }
-                : (b.helicopter ?? { enabled: false, date: '', tickets: 1 }),
-            })),
-          }
-        }
-
-        if (fromVersion < 4) {
-          state = {
-            ...state,
-            bookings: (state.bookings ?? []).map((b) => ({
-              ...b,
-              helicopter: {
-                boardingFrom: '',
-                landingTo: '',
-                ...(b.helicopter ?? { enabled: false, date: '', tickets: 1 }),
-              },
-            })),
-          }
-        }
-
-        if (fromVersion < 5) {
-          state = {
-            ...state,
-            bookings: (state.bookings ?? []).map((b) => {
-              // eslint-disable-next-line no-unused-vars
-              const { helicopter, ...rest } = b
-              return {
-                type: 'room',
-                linkedHelicopterId: null,
-                ...rest,
-              }
-            }),
-          }
-        }
-
-        return state
-      },
+  getTodayStats: () => {
+    const { bookings } = get()
+    const todayStr     = fmt(new Date())
+    const roomBookings = bookings.filter((b) => b.type === 'room')
+    return {
+      arrivingToday:  roomBookings.filter((b) => b.checkIn === todayStr),
+      departingToday: roomBookings.filter((b) => b.checkOut === todayStr),
+      occupied:       roomBookings.filter((b) => b.checkIn <= todayStr && b.checkOut > todayStr),
     }
-  )
-)
+  },
+}))

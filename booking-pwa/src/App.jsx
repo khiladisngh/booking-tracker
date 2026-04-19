@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { CalendarDays, CalendarRange, LayoutDashboard, Plus, CalendarPlus, X, Plane, BedDouble } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useStore } from './store/useStore'
+import { useStore, SEED_BOOKINGS } from './store/useStore'
+import { subscribeToBookings, seedIfEmpty } from './services/firestoreSync'
 import { scheduleNotifications, cancelAllNotifications } from './services/notifications'
+import SyncStatus from './components/SyncStatus'
 import BookingsScreen from './screens/BookingsScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import CalendarScreen from './screens/CalendarScreen'
@@ -67,6 +69,14 @@ function AppContent() {
 
   const bookings = useStore((s) => s.bookings)
   const config   = useStore((s) => s.config)
+  const setBookings = useStore((s) => s.setBookings)
+
+  // Firestore: seed on first load, then keep local state in sync via snapshot listener
+  useEffect(() => {
+    seedIfEmpty(SEED_BOOKINGS).catch(console.error)
+    const unsub = subscribeToBookings(setBookings)
+    return unsub
+  }, [setBookings])
 
   useEffect(() => {
     scheduleNotifications(bookings, config.notifications)
@@ -145,7 +155,7 @@ function AppContent() {
         className="fixed top-0 left-0 right-0 z-30 glass border-b border-white/10"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="px-5 h-[52px] flex items-center">
+        <div className="px-5 h-[52px] flex items-center justify-between">
           <AnimatePresence mode="wait" initial={false}>
             <motion.h1
               key={screen}
@@ -158,6 +168,7 @@ function AppContent() {
               {SCREEN_TITLES[screen]}
             </motion.h1>
           </AnimatePresence>
+          <SyncStatus />
         </div>
       </header>
 

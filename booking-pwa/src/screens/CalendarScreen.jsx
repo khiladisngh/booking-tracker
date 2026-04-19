@@ -132,7 +132,7 @@ export default function CalendarScreen({ onBookingTap }) {
           const dayBkgs    = dayMap[k] ?? []
           const isToday    = k === todayStr
           const isSelected = k === selectedKey
-          const locs       = [...new Set(dayBkgs.map((b) => b.location))].slice(0, 4)
+          const locs       = [...new Set(dayBkgs.map((b) => b.location).filter(Boolean))].slice(0, 4)
 
           return (
             <motion.button

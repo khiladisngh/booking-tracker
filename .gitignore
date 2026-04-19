@@ -40,3 +40,8 @@ dev-dist/
 
 # Playwright MCP session cache
 .playwright-mcp/
+
+# Firebase emulator debug logs
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
