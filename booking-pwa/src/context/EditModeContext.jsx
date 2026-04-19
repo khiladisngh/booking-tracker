@@ -27,12 +27,29 @@ export function EditModeProvider({ children }) {
   const deviceIdRef     = useRef(getDeviceId())
   const ipAddressRef    = useRef(null)
 
-  // Seed /config/auth on first load if it doesn't exist yet.
+  // Seed /config/auth on first load if it doesn't exist. Retry on failure —
+  // the first user post-deploy may race the Firestore rules propagation, and
+  // a failed seed leaves everyone stuck on the loading screen forever.
   useEffect(() => {
-    seedAuthIfMissing({
-      viewPasscode: '9458',
-      editPasscode: String(import.meta.env.VITE_ADMIN_PASSCODE ?? '3586'),
-    }).catch((err) => console.error('[auth] seed failed', err))
+    let cancelled = false
+    let attempt   = 0
+    async function trySeed() {
+      while (!cancelled && attempt < 5) {
+        try {
+          await seedAuthIfMissing({
+            viewPasscode: '9458',
+            editPasscode: String(import.meta.env.VITE_ADMIN_PASSCODE ?? '3586'),
+          })
+          return
+        } catch (err) {
+          attempt += 1
+          console.warn(`[auth] seed attempt ${attempt} failed, retrying…`, err?.code ?? err)
+          await new Promise((r) => setTimeout(r, 2000 * attempt))
+        }
+      }
+    }
+    trySeed()
+    return () => { cancelled = true }
   }, [])
 
   // Fetch public IP once per session; best-effort.

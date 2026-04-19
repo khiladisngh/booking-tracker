@@ -17,9 +17,19 @@ export default function ViewPasscodeGate({ children }) {
   const [digits, setDigits] = useState([])
   const [shake,  setShake]  = useState(false)
   const [errMsg, setErrMsg] = useState('')
+  // Surface a warning after a few seconds if the auth config hasn't loaded —
+  // usually means network issue or Firestore rules haven't propagated yet.
+  const [slowLoad, setSlowLoad] = useState(false)
 
   const locked = authLevel === 'locked'
+  const loading = authConfig === null
   const killSwitchOn = authConfig && authConfig.accessEnabled === false
+
+  useEffect(() => {
+    if (!loading) { setSlowLoad(false); return }
+    const t = setTimeout(() => setSlowLoad(true), 6000)
+    return () => clearTimeout(t)
+  }, [loading])
 
   // Reset input whenever we re-lock (e.g. kill switch flipped remotely).
   useEffect(() => {
@@ -31,6 +41,13 @@ export default function ViewPasscodeGate({ children }) {
   }, [locked])
 
   const handleSubmit = useCallback((currentDigits) => {
+    if (loading) {
+      setErrMsg('Connecting to server — try again in a moment')
+      setShake(true)
+      setTimeout(() => { setShake(false); setDigits([]) }, 400)
+      setTimeout(() => setErrMsg(''), 2500)
+      return
+    }
     const passcode = currentDigits.join('')
     const result = unlock(passcode)
     if (result) {
@@ -42,7 +59,7 @@ export default function ViewPasscodeGate({ children }) {
       setTimeout(() => { setShake(false); setDigits([]) }, 400)
       setTimeout(() => setErrMsg(''), 2500)
     }
-  }, [unlock, killSwitchOn])
+  }, [unlock, killSwitchOn, loading])
 
   useEffect(() => {
     if (digits.length === 4) handleSubmit(digits)
@@ -52,15 +69,6 @@ export default function ViewPasscodeGate({ children }) {
     if (key === 'clear')  { setDigits((d) => d.slice(0, -1)); return }
     if (key === 'submit') { if (digits.length > 0) handleSubmit(digits); return }
     if (digits.length < 4) setDigits((d) => [...d, key])
-  }
-
-  // Auth config still loading — render nothing (avoid flash of locked UI).
-  if (authConfig === null && locked) {
-    return (
-      <div className="flex items-center justify-center h-dvh">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
   }
 
   return (
@@ -106,7 +114,9 @@ export default function ViewPasscodeGate({ children }) {
                 Booking Manager
               </p>
               <p className="text-center text-[13px] text-lo mb-7">
-                Enter passcode to continue
+                {loading
+                  ? (slowLoad ? 'Check your connection…' : 'Connecting…')
+                  : 'Enter passcode to continue'}
               </p>
 
               {/* Dot indicators */}

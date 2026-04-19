@@ -82,9 +82,23 @@ export async function seedIfEmpty(seedBookings) {
 // ─── Auth config (/config/auth) ───────────────────────────────────────────────
 
 export function subscribeToAuthConfig(callback) {
-  return onSnapshot(authDocRef, (snapshot) => {
-    callback(snapshot.exists() ? snapshot.data() : null)
-  })
+  let unsub = () => {}
+  let cancelled = false
+
+  function attach() {
+    unsub = onSnapshot(
+      authDocRef,
+      (snapshot) => { callback(snapshot.exists() ? snapshot.data() : null) },
+      (err) => {
+        if (cancelled) return
+        console.warn('[firestore] auth config listener error, retrying…', err.code)
+        setTimeout(() => { if (!cancelled) attach() }, 2000)
+      }
+    )
+  }
+
+  attach()
+  return () => { cancelled = true; unsub() }
 }
 
 export async function seedAuthIfMissing({ viewPasscode, editPasscode }) {
@@ -108,16 +122,32 @@ export function updateAuthConfig(updates) {
 // ─── Sessions (/sessions/{deviceId}) ──────────────────────────────────────────
 
 export function subscribeToSessions(callback) {
-  return onSnapshot(sessionsCol, (snapshot) => {
-    callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
-  })
+  let unsub = () => {}
+  let cancelled = false
+
+  function attach() {
+    unsub = onSnapshot(
+      sessionsCol,
+      (snapshot) => { callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))) },
+      (err) => {
+        if (cancelled) return
+        console.warn('[firestore] sessions listener error, retrying…', err.code)
+        setTimeout(() => { if (!cancelled) attach() }, 2000)
+      }
+    )
+  }
+
+  attach()
+  return () => { cancelled = true; unsub() }
 }
 
+// Session writes are non-critical — never let them surface errors that scare
+// the user or spam the console. Swallow and log quietly.
 export function registerSession(deviceId, payload) {
   return setDoc(doc(db, 'sessions', deviceId), {
     ...payload,
     lastSeenAt: serverTimestamp(),
-  })
+  }).catch((err) => console.warn('[firestore] session register failed', err.code))
 }
 
 export function touchSession(deviceId, extraFields = {}) {
@@ -129,4 +159,5 @@ export function touchSession(deviceId, extraFields = {}) {
 
 export function endSession(deviceId) {
   return deleteDoc(doc(db, 'sessions', deviceId))
+    .catch((err) => console.warn('[firestore] session end failed', err.code))
 }
