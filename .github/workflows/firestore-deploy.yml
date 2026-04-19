@@ -1,0 +1,20 @@
+name: Deploy Firestore Rules & Indexes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Firestore rules and indexes
+        run: npx firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project personal-apps-493717 --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
