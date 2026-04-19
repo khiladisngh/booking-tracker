@@ -15,9 +15,24 @@ import { getDeviceId, describeDevice, fetchPublicIp } from '../utils/device'
 const EditModeContext = createContext(null)
 
 const HEARTBEAT_MS = 30_000
+const AUTH_CACHE_KEY = 'booking_auth_cache'
+
+function loadCachedAuthConfig() {
+  try {
+    const raw = localStorage.getItem(AUTH_CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function saveCachedAuthConfig(config) {
+  try { localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(config)) } catch {}
+}
 
 export function EditModeProvider({ children }) {
-  const [authConfig, setAuthConfig] = useState(null)   // null = still loading
+  // Seed from localStorage immediately so offline auth works on first render.
+  // null means "never seen config" (shows "Connecting…"); a cached value means
+  // the gate is usable right away even without network.
+  const [authConfig, setAuthConfig] = useState(loadCachedAuthConfig)
   const [authLevel,  setAuthLevel]  = useState('locked')
 
   // Keep the passcode the user entered in memory (not persisted) so we can
@@ -61,6 +76,8 @@ export function EditModeProvider({ children }) {
   useEffect(() => {
     const unsub = subscribeToAuthConfig((cfg) => {
       setAuthConfig(cfg)
+      // Keep localStorage in sync so next load works offline.
+      if (cfg) saveCachedAuthConfig(cfg)
       if (!cfg) return
 
       const entered = lastPasscodeRef.current

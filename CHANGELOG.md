@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 ---
 
+## [0.5.2] — 2026-04-19
+
+### Fixed
+- Passcode gate now renders correctly in both dark and light mode — numbers were invisible in light mode because the overlay used a hardcoded `rgba(0,0,0,0.92)` background while the design system switched text to dark (#1c1c1e). Gate now uses design-system tokens and adapts to `prefers-color-scheme`.
+- Gate overlay, icon circle, numpad keys, and backspace icon all have correct contrast in both modes.
+
+### Added
+- **Offline authentication** — `authConfig` (view/edit passcodes, kill-switch state) is cached in `localStorage` under `booking_auth_cache`. On subsequent loads the passcode gate is usable immediately without waiting for Firestore, including when the device is fully offline. When the device reconnects, Firestore updates the cache automatically and re-validates the active session.
+
+---
+
 ## [0.5.1] — 2026-04-19
 
 ### Fixed

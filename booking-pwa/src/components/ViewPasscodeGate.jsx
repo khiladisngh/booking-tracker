@@ -17,8 +17,6 @@ export default function ViewPasscodeGate({ children }) {
   const [digits, setDigits] = useState([])
   const [shake,  setShake]  = useState(false)
   const [errMsg, setErrMsg] = useState('')
-  // Surface a warning after a few seconds if the auth config hasn't loaded —
-  // usually means network issue or Firestore rules haven't propagated yet.
   const [slowLoad, setSlowLoad] = useState(false)
 
   const locked = authLevel === 'locked'
@@ -31,7 +29,6 @@ export default function ViewPasscodeGate({ children }) {
     return () => clearTimeout(t)
   }, [loading])
 
-  // Reset input whenever we re-lock (e.g. kill switch flipped remotely).
   useEffect(() => {
     if (locked) {
       setDigits([])
@@ -82,11 +79,8 @@ export default function ViewPasscodeGate({ children }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
+            className="gate-overlay fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
             style={{
-              background: 'rgba(0,0,0,0.92)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
               paddingTop:    'env(safe-area-inset-top)',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
@@ -97,12 +91,9 @@ export default function ViewPasscodeGate({ children }) {
               transition={SPRING}
               className="w-full max-w-xs"
             >
-              {/* Header */}
+              {/* Header icon */}
               <div className="flex justify-center mb-5">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.08)' }}
-                >
+                <div className="gate-icon-wrap w-14 h-14 rounded-full flex items-center justify-center">
                   {killSwitchOn
                     ? <ShieldAlert size={24} strokeWidth={1.8} className="text-accent" />
                     : <Lock        size={22} strokeWidth={1.8} className="text-accent" />
@@ -130,7 +121,7 @@ export default function ViewPasscodeGate({ children }) {
                     key={i}
                     animate={{
                       scale: digits.length === i + 1 ? [1, 1.25, 1] : 1,
-                      background: i < digits.length ? 'var(--ds-accent)' : 'rgba(255,255,255,0.15)',
+                      background: i < digits.length ? 'var(--ds-accent)' : 'var(--gate-dot-empty)',
                     }}
                     transition={{ duration: 0.18 }}
                     className="w-3.5 h-3.5 rounded-full"
@@ -145,8 +136,7 @@ export default function ViewPasscodeGate({ children }) {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="text-[12px] font-medium"
-                      style={{ color: 'var(--ds-urgent)' }}
+                      className="text-[12px] font-medium text-urgent"
                     >
                       {errMsg}
                     </motion.p>
@@ -175,11 +165,10 @@ function NumKey({ value, onPress }) {
         whileTap={{ scale: 0.88 }}
         transition={{ type: 'spring', stiffness: 420, damping: 38 }}
         onClick={() => onPress('clear')}
-        className="h-14 rounded-[16px] flex items-center justify-center text-lo active:text-hi transition-colors"
-        style={{ background: 'rgba(255,255,255,0.07)' }}
+        className="gate-key h-14 rounded-[16px] flex items-center justify-center transition-colors"
         aria-label="Clear"
       >
-        <Delete size={20} strokeWidth={1.8} />
+        <Delete size={20} strokeWidth={1.8} className="gate-key-icon" />
       </motion.button>
     )
   }
@@ -204,8 +193,7 @@ function NumKey({ value, onPress }) {
       whileTap={{ scale: 0.88 }}
       transition={{ type: 'spring', stiffness: 420, damping: 38 }}
       onClick={() => onPress(value)}
-      className="h-14 rounded-[16px] text-[22px] font-medium text-hi transition-colors"
-      style={{ background: 'rgba(255,255,255,0.07)' }}
+      className="gate-key h-14 rounded-[16px] text-[22px] font-semibold transition-colors"
       aria-label={value}
     >
       {value}
