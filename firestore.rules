@@ -1,7 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Booking records — shared between all authorized devices.
     match /bookings/{bookingId} {
+      allow read, write: if true;
+    }
+
+    // Auth config — view/edit passcodes and kill switch.
+    // Readable so clients can validate passcodes without a backend; writable
+    // only by the admin in-app (gated client-side by edit passcode).
+    match /config/{docId} {
+      allow read, write: if true;
+    }
+
+    // Device presence — each device registers a session with device name, UA,
+    // IP, and heartbeat. Admin can see and terminate sessions.
+    match /sessions/{deviceId} {
       allow read, write: if true;
     }
   }

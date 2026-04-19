@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CalendarDays, CalendarRange, LayoutDashboard, Plus, CalendarPlus, X, Plane, BedDouble } from 'lucide-react'
+import { CalendarDays, CalendarRange, LayoutDashboard, Settings as SettingsIcon, Plus, CalendarPlus, X, Plane, BedDouble } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore, SEED_BOOKINGS } from './store/useStore'
 import { subscribeToBookings, seedIfEmpty } from './services/firestoreSync'
@@ -8,26 +8,30 @@ import SyncStatus from './components/SyncStatus'
 import BookingsScreen from './screens/BookingsScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import CalendarScreen from './screens/CalendarScreen'
+import SettingsScreen from './screens/SettingsScreen'
 import AddBookingScreen from './screens/AddBookingScreen'
 import AddHelicopterScreen from './screens/AddHelicopterScreen'
 import BookingDetailSheet from './components/BookingDetailSheet'
 import PasscodeModal from './components/PasscodeModal'
 import LockButton from './components/LockButton'
+import ViewPasscodeGate from './components/ViewPasscodeGate'
 import { EditModeProvider, useEditModeContext } from './context/EditModeContext'
 import { downloadICS } from './services/icsExport'
 
-const TABS = ['bookings', 'calendar', 'dashboard']
+const TABS = ['bookings', 'calendar', 'dashboard', 'settings']
 
 const NAV = [
   { id: 'bookings',  label: 'Bookings',  Icon: CalendarDays    },
   { id: 'calendar',  label: 'Calendar',  Icon: CalendarRange   },
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { id: 'settings',  label: 'Settings',  Icon: SettingsIcon    },
 ]
 
 const SCREEN_TITLES = {
   bookings:  'Bookings',
   calendar:  'Calendar',
   dashboard: 'Dashboard',
+  settings:  'Settings',
 }
 
 const SPRING_TAB    = { type: 'spring', stiffness: 420, damping: 38 }
@@ -43,7 +47,9 @@ const screenVariants = {
 export default function App() {
   return (
     <EditModeProvider>
-      <AppContent />
+      <ViewPasscodeGate>
+        <AppContent />
+      </ViewPasscodeGate>
     </EditModeProvider>
   )
 }
@@ -198,6 +204,7 @@ function AppContent() {
             )}
             {screen === 'calendar'  && <CalendarScreen  onBookingTap={setSelectedBooking} />}
             {screen === 'dashboard' && <DashboardScreen />}
+            {screen === 'settings'  && <SettingsScreen  />}
           </motion.div>
         </AnimatePresence>
       </main>

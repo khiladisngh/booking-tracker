@@ -7,10 +7,16 @@ import {
   deleteDoc,
   writeBatch,
   getDocs,
+  getDoc,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
 const bookingsCol = collection(db, 'bookings')
+const sessionsCol = collection(db, 'sessions')
+const authDocRef  = doc(db, 'config', 'auth')
+
+// ─── Bookings ─────────────────────────────────────────────────────────────────
 
 export function subscribeToBookings(callback) {
   let unsub = () => {}
@@ -71,4 +77,56 @@ export async function seedIfEmpty(seedBookings) {
   const batch = writeBatch(db)
   seedBookings.forEach((b) => batch.set(doc(db, 'bookings', b.id), b))
   await batch.commit()
+}
+
+// ─── Auth config (/config/auth) ───────────────────────────────────────────────
+
+export function subscribeToAuthConfig(callback) {
+  return onSnapshot(authDocRef, (snapshot) => {
+    callback(snapshot.exists() ? snapshot.data() : null)
+  })
+}
+
+export async function seedAuthIfMissing({ viewPasscode, editPasscode }) {
+  const snap = await getDoc(authDocRef)
+  if (snap.exists()) return
+  await setDoc(authDocRef, {
+    viewPasscode,
+    editPasscode,
+    accessEnabled: true,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export function updateAuthConfig(updates) {
+  return updateDoc(authDocRef, {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+// ─── Sessions (/sessions/{deviceId}) ──────────────────────────────────────────
+
+export function subscribeToSessions(callback) {
+  return onSnapshot(sessionsCol, (snapshot) => {
+    callback(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
+
+export function registerSession(deviceId, payload) {
+  return setDoc(doc(db, 'sessions', deviceId), {
+    ...payload,
+    lastSeenAt: serverTimestamp(),
+  })
+}
+
+export function touchSession(deviceId, extraFields = {}) {
+  return updateDoc(doc(db, 'sessions', deviceId), {
+    ...extraFields,
+    lastSeenAt: serverTimestamp(),
+  }).catch(() => { /* doc may not exist yet if unlock race */ })
+}
+
+export function endSession(deviceId) {
+  return deleteDoc(doc(db, 'sessions', deviceId))
 }

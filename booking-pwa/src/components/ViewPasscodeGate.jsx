@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Delete } from 'lucide-react'
+import { Delete, Lock, ShieldAlert } from 'lucide-react'
 import { useEditModeContext } from '../context/EditModeContext'
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 36 }
@@ -12,90 +12,102 @@ const PAD_KEYS = [
   ['clear', '0', 'submit'],
 ]
 
-export default function PasscodeModal({ isOpen, onClose }) {
-  const { unlock } = useEditModeContext()
-  const [digits, setDigits]   = useState([])
-  const [error, setError]     = useState(false)
-  const [shake, setShake]     = useState(false)
-  const [errMsg, setErrMsg]   = useState(false)
+export default function ViewPasscodeGate({ children }) {
+  const { authLevel, authConfig, unlock } = useEditModeContext()
+  const [digits, setDigits] = useState([])
+  const [shake,  setShake]  = useState(false)
+  const [errMsg, setErrMsg] = useState('')
 
-  // Clear state when modal opens
+  const locked = authLevel === 'locked'
+  const killSwitchOn = authConfig && authConfig.accessEnabled === false
+
+  // Reset input whenever we re-lock (e.g. kill switch flipped remotely).
   useEffect(() => {
-    if (isOpen) {
+    if (locked) {
       setDigits([])
-      setError(false)
       setShake(false)
-      setErrMsg(false)
+      setErrMsg('')
     }
-  }, [isOpen])
+  }, [locked])
 
-  // Auto-submit when 4 digits entered
+  const handleSubmit = useCallback((currentDigits) => {
+    const passcode = currentDigits.join('')
+    const result = unlock(passcode)
+    if (result) {
+      setDigits([])
+      setErrMsg('')
+    } else {
+      setShake(true)
+      setErrMsg(killSwitchOn ? 'Viewing is temporarily disabled' : 'Incorrect passcode')
+      setTimeout(() => { setShake(false); setDigits([]) }, 400)
+      setTimeout(() => setErrMsg(''), 2500)
+    }
+  }, [unlock, killSwitchOn])
+
   useEffect(() => {
     if (digits.length === 4) handleSubmit(digits)
   }, [digits]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = useCallback((currentDigits) => {
-    const passcode = currentDigits.join('')
-    // Only close on edit-level unlock — this modal is specifically for edit mode.
-    if (unlock(passcode) === 'edit') {
-      onClose()
-    } else {
-      setShake(true)
-      setErrMsg(true)
-      setTimeout(() => {
-        setShake(false)
-        setDigits([])
-      }, 400)
-      setTimeout(() => setErrMsg(false), 2000)
-    }
-  }, [unlock, onClose])
-
   function handleKey(key) {
-    if (key === 'clear') {
-      setDigits((d) => d.slice(0, -1))
-      return
-    }
-    if (key === 'submit') {
-      if (digits.length > 0) handleSubmit(digits)
-      return
-    }
-    if (digits.length < 4) {
-      setDigits((d) => [...d, key])
-    }
+    if (key === 'clear')  { setDigits((d) => d.slice(0, -1)); return }
+    if (key === 'submit') { if (digits.length > 0) handleSubmit(digits); return }
+    if (digits.length < 4) setDigits((d) => [...d, key])
+  }
+
+  // Auth config still loading — render nothing (avoid flash of locked UI).
+  if (authConfig === null && locked) {
+    return (
+      <div className="flex items-center justify-center h-dvh">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay */}
+    <>
+      {children}
+      <AnimatePresence>
+        {locked && (
           <motion.div
-            key="passcode-overlay"
+            key="view-gate"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-          />
-
-          {/* Modal card */}
-          <motion.div
-            key="passcode-modal"
-            initial={{ opacity: 0, scale: 0.92, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 24 }}
-            transition={SPRING}
-            className="fixed inset-x-0 bottom-0 z-[61] flex items-end justify-center sm:items-center sm:inset-0"
-            style={{ pointerEvents: 'none' }}
+            className="fixed inset-0 z-[80] flex flex-col items-center justify-center px-6"
+            style={{
+              background: 'rgba(0,0,0,0.92)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              paddingTop:    'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
           >
-            <div
-              className="glass-heavy rounded-t-[28px] sm:rounded-[28px] w-full max-w-xs px-6 pt-6 pb-10 sm:pb-8"
-              style={{ pointerEvents: 'auto' }}
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={SPRING}
+              className="w-full max-w-xs"
             >
               {/* Header */}
-              <p className="text-center text-[17px] font-bold text-hi mb-1">Enter Passcode</p>
-              <p className="text-center text-[13px] text-lo mb-6">4-digit code to unlock edit mode</p>
+              <div className="flex justify-center mb-5">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.08)' }}
+                >
+                  {killSwitchOn
+                    ? <ShieldAlert size={24} strokeWidth={1.8} className="text-accent" />
+                    : <Lock        size={22} strokeWidth={1.8} className="text-accent" />
+                  }
+                </div>
+              </div>
+
+              <p className="text-center text-[18px] font-bold text-hi mb-1">
+                Booking Manager
+              </p>
+              <p className="text-center text-[13px] text-lo mb-7">
+                Enter passcode to continue
+              </p>
 
               {/* Dot indicators */}
               <motion.div
@@ -108,9 +120,7 @@ export default function PasscodeModal({ isOpen, onClose }) {
                     key={i}
                     animate={{
                       scale: digits.length === i + 1 ? [1, 1.25, 1] : 1,
-                      background: i < digits.length
-                        ? (error ? 'var(--ds-urgent)' : 'var(--ds-accent)')
-                        : 'rgba(255,255,255,0.15)',
+                      background: i < digits.length ? 'var(--ds-accent)' : 'rgba(255,255,255,0.15)',
                     }}
                     transition={{ duration: 0.18 }}
                     className="w-3.5 h-3.5 rounded-full"
@@ -118,8 +128,7 @@ export default function PasscodeModal({ isOpen, onClose }) {
                 ))}
               </motion.div>
 
-              {/* Error message */}
-              <div className="h-5 flex items-center justify-center mb-4">
+              <div className="h-6 flex items-center justify-center mb-4">
                 <AnimatePresence>
                   {errMsg && (
                     <motion.p
@@ -129,7 +138,7 @@ export default function PasscodeModal({ isOpen, onClose }) {
                       className="text-[12px] font-medium"
                       style={{ color: 'var(--ds-urgent)' }}
                     >
-                      Incorrect passcode
+                      {errMsg}
                     </motion.p>
                   )}
                 </AnimatePresence>
@@ -141,17 +150,15 @@ export default function PasscodeModal({ isOpen, onClose }) {
                   <NumKey key={key} value={key} onPress={handleKey} />
                 ))}
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 
 function NumKey({ value, onPress }) {
-  const isAction = value === 'clear' || value === 'submit'
-
   if (value === 'clear') {
     return (
       <motion.button

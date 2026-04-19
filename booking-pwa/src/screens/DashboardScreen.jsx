@@ -1,14 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import PullToRefresh from '../components/PullToRefresh'
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { motion } from 'framer-motion'
 import {
-  CalendarRange, CalendarDays, Plane, BedDouble,
-  Bell, BellOff, MapPin, CloudUpload, ChevronRight, Clock, CalendarCheck,
+  CalendarRange, CalendarDays, Plane, BedDouble, MapPin, Clock,
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import BackupSheet from '../components/BackupSheet'
-import { downloadICS } from '../services/icsExport'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -138,47 +135,6 @@ function StatCard({ value, label }) {
   )
 }
 
-function NotificationBanner({ permission, onPermissionChange }) {
-  if (!('Notification' in window)) return null
-  if (permission === 'granted') return null
-
-  async function handleEnable() {
-    const result = await Notification.requestPermission()
-    onPermissionChange(result)
-  }
-
-  const isDenied = permission === 'denied'
-
-  return (
-    <motion.div variants={cardVariants} className="glass rounded-[16px] p-4 flex gap-3 items-start">
-      <div className="shrink-0 mt-0.5 text-accent">
-        {isDenied
-          ? <BellOff size={18} strokeWidth={1.8} />
-          : <Bell    size={18} strokeWidth={1.8} />}
-      </div>
-      <div className="flex-1 min-w-0">
-        {isDenied ? (
-          <>
-            <p className="text-[13px] font-medium text-hi">Notifications blocked</p>
-            <p className="text-[12px] text-lo mt-0.5">Enable in device Settings to receive arrival reminders.</p>
-          </>
-        ) : (
-          <>
-            <p className="text-[13px] font-medium text-hi">Enable reminders</p>
-            <p className="text-[12px] text-lo mt-0.5">Get notified before each arrival.</p>
-            <button
-              onClick={handleEnable}
-              className="mt-3 bg-accent text-white rounded-[10px] px-4 py-2 text-[13px] font-medium active:bg-accent-press transition-colors duration-[120ms] min-h-[44px]"
-            >
-              Enable notifications
-            </button>
-          </>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
 function ReminderRow({ reminder }) {
   return (
     <div className="flex gap-3 items-center py-2.5 border-b border-white/[0.06] last:border-0">
@@ -201,11 +157,6 @@ function ReminderRow({ reminder }) {
 
 export default function DashboardScreen() {
   const bookings = useStore((s) => s.bookings)
-
-  const [notifPermission, setNotifPermission] = useState(() =>
-    'Notification' in window ? Notification.permission : 'unsupported'
-  )
-  const [backupOpen, setBackupOpen] = useState(false)
 
   const today = todayStr()
   const week  = currentWeekBounds()
@@ -233,7 +184,6 @@ export default function DashboardScreen() {
   return (
     <PullToRefresh className="overflow-y-auto pb-28 px-4 space-y-5 pt-4">
 
-      {/* Stats */}
       <section aria-label="Summary statistics">
         <h2 className="section-label mb-2">Overview</h2>
         <motion.div
@@ -249,15 +199,6 @@ export default function DashboardScreen() {
         </motion.div>
       </section>
 
-      {/* Notification banner */}
-      <motion.div variants={listVariants} initial="hidden" animate="show">
-        <NotificationBanner
-          permission={notifPermission}
-          onPermissionChange={setNotifPermission}
-        />
-      </motion.div>
-
-      {/* Upcoming reminders */}
       <section aria-label="Upcoming reminders">
         <h2 className="section-label mb-2">Upcoming reminders</h2>
         <div className="glass rounded-[16px] px-4">
@@ -273,7 +214,6 @@ export default function DashboardScreen() {
         </div>
       </section>
 
-      {/* By location */}
       <section aria-label="Bookings by location">
         <h2 className="section-label mb-2">By location</h2>
         <div className="glass rounded-[16px] overflow-hidden divide-y divide-white/[0.06]">
@@ -289,41 +229,6 @@ export default function DashboardScreen() {
         </div>
       </section>
 
-      {/* Cloud Backup + Calendar Export */}
-      <section aria-label="Cloud backup">
-        <h2 className="section-label mb-2">Data</h2>
-        <div className="glass rounded-[16px] overflow-hidden divide-y divide-white/[0.06]">
-          <motion.button
-            type="button"
-            onClick={() => setBackupOpen(true)}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-            className="w-full px-4 py-3 flex items-center justify-between touch-target"
-          >
-            <div className="flex items-center gap-3">
-              <CloudUpload size={18} className="text-accent" strokeWidth={1.8} />
-              <span className="text-[13px] text-hi">Backup &amp; Restore</span>
-            </div>
-            <ChevronRight size={16} className="text-lo" strokeWidth={2} />
-          </motion.button>
-
-          <motion.button
-            type="button"
-            onClick={() => downloadICS(bookings)}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-            className="w-full px-4 py-3 flex items-center justify-between touch-target"
-          >
-            <div className="flex items-center gap-3">
-              <CalendarCheck size={18} className="text-accent" strokeWidth={1.8} />
-              <span className="text-[13px] text-hi">Export to Calendar (.ics)</span>
-            </div>
-            <ChevronRight size={16} className="text-lo" strokeWidth={2} />
-          </motion.button>
-        </div>
-      </section>
-
-      <BackupSheet isOpen={backupOpen} onClose={() => setBackupOpen(false)} />
     </PullToRefresh>
   )
 }

@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "booking-pwa dev",
-      "runtimeExecutable": "wsl.exe",
-      "runtimeArgs": ["-e", "bash", "-c", "cd ~/dev/projects/booking-tracker/booking-pwa && ~/.bun/bin/bun run dev -- --host 0.0.0.0 --port 5173"],
+      "name": "booking-pwa",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": ["-d", "Ubuntu", "-u", "gishantsingh", "--", "bash", "-lc", "cd /home/gishantsingh/dev/projects/booking-tracker/booking-pwa && /home/gishantsingh/.bun/bin/bun run dev --host"],
       "port": 5173
     }
   ]
