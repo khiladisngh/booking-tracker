@@ -185,8 +185,8 @@ async function fireMorningReminder(booking) {
  */
 function buildMorningLabel(booking) {
   let label = `${booking.guestName} arriving — Room ${booking.room} (${booking.location})`
-  if (booking.helicopter?.enabled) {
-    label += '. Helicopter needed.'
+  if (booking.linkedHelicopterId) {
+    label += '. Helicopter booked.'
   }
   return label
 }

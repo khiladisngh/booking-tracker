@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import BookingCard from '../components/BookingCard'
+import PullToRefresh from '../components/PullToRefresh'
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 38 }
 
@@ -26,7 +27,7 @@ export default function CalendarScreen({ onBookingTap }) {
   const bookings = useStore((s) => s.bookings)
 
   const locColors = useMemo(() => {
-    const locs = [...new Set(bookings.map((b) => b.location).filter(Boolean))].sort()
+    const locs = [...new Set(bookings.filter((b) => b.type === 'room').map((b) => b.location).filter(Boolean))].sort()
     return Object.fromEntries(locs.map((l, i) => [l, LOC_PALETTE[i % LOC_PALETTE.length]]))
   }, [bookings])
 
@@ -37,23 +38,36 @@ export default function CalendarScreen({ onBookingTap }) {
   // Mon-based leading empty cells (Sun=0 → shift so Mon=0)
   const leadingEmpty = (getDay(monthStart) + 6) % 7
 
-  // Map yyyy-MM-dd → bookings active on that day (checkIn ≤ day < checkOut)
+  // Map yyyy-MM-dd → bookings active on that day
+  // Room bookings span checkIn..checkOut-1; helicopter bookings appear on travelDate only.
   const dayMap = useMemo(() => {
-    const map = {}
+    const map         = {}
+    const monthStartS = format(monthStart, 'yyyy-MM-dd')
+    const monthEndS   = format(monthEnd,   'yyyy-MM-dd')
+
     for (const b of bookings) {
-      const bStart  = parseISO(b.checkIn)
-      const bEnd    = parseISO(b.checkOut) // exclusive
-
-      const spanStart = bStart < monthStart ? monthStart : bStart
-      const lastDay   = new Date(bEnd.getTime() - 86_400_000)
-      const spanEnd   = lastDay > monthEnd ? monthEnd : lastDay
-
-      if (spanStart > spanEnd) continue
-
-      for (const day of eachDayOfInterval({ start: spanStart, end: spanEnd })) {
-        const k = format(day, 'yyyy-MM-dd')
-        ;(map[k] ??= []).push(b)
+      if (b.type === 'helicopter') {
+        if (b.travelDate && b.travelDate >= monthStartS && b.travelDate <= monthEndS) {
+          ;(map[b.travelDate] ??= []).push(b)
+        }
+        continue
       }
+
+      // Room bookings — guard against missing dates to prevent eachDayOfInterval crash
+      if (!b.checkIn || !b.checkOut) continue
+
+      try {
+        const bStart  = parseISO(b.checkIn)
+        const bEnd    = parseISO(b.checkOut)
+        const spanStart = bStart < monthStart ? monthStart : bStart
+        const lastDay   = new Date(bEnd.getTime() - 86_400_000)
+        const spanEnd   = lastDay > monthEnd ? monthEnd : lastDay
+        if (spanStart > spanEnd) continue
+        for (const day of eachDayOfInterval({ start: spanStart, end: spanEnd })) {
+          const k = format(day, 'yyyy-MM-dd')
+          ;(map[k] ??= []).push(b)
+        }
+      } catch { continue }
     }
     return map
   }, [bookings, monthStart, monthEnd])
@@ -168,7 +182,7 @@ export default function CalendarScreen({ onBookingTap }) {
       )}
 
       {/* ── Selected day bookings / hint ────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <PullToRefresh className="flex-1 overflow-y-auto px-4 pb-28">
         <AnimatePresence mode="wait">
           {selectedDay ? (
             <motion.div
@@ -204,7 +218,7 @@ export default function CalendarScreen({ onBookingTap }) {
             </motion.p>
           )}
         </AnimatePresence>
-      </div>
+      </PullToRefresh>
 
     </div>
   )

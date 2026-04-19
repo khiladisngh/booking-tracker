@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import PullToRefresh from '../components/PullToRefresh'
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { motion } from 'framer-motion'
 import {
@@ -210,23 +211,27 @@ export default function DashboardScreen() {
   const week  = currentWeekBounds()
   const month = currentMonthBounds()
 
-  const thisWeekCount  = bookings.filter((b) => b.checkIn >= week.start  && b.checkIn <= week.end).length
-  const thisMonthCount = bookings.filter((b) => b.checkIn >= month.start && b.checkIn <= month.end).length
-  const helicopterCount = bookings.filter((b) => b.helicopter?.enabled === true && b.checkIn >= today).length
-  const occupiedNow     = bookings.filter((b) => b.checkIn <= today && b.checkOut > today).length
+  const roomBookings = bookings.filter((b) => b.type === 'room')
+  const heliBookings = bookings.filter((b) => b.type === 'helicopter')
 
-  const upcomingReminders = buildUpcomingReminders(bookings)
+  const thisWeekCount  = roomBookings.filter((b) => b.checkIn >= week.start  && b.checkIn <= week.end).length
+  const thisMonthCount = roomBookings.filter((b) => b.checkIn >= month.start && b.checkIn <= month.end).length
+  const helicopterCount = heliBookings.filter((b) => b.travelDate >= today).length
+  const occupiedNow     = roomBookings.filter((b) => b.checkIn <= today && b.checkOut > today).length
+
+  const upcomingReminders = buildUpcomingReminders(roomBookings)
 
   const locationCounts = useMemo(() => {
-    const unique = [...new Set(bookings.map((b) => b.location).filter(Boolean))].sort()
+    const rooms  = bookings.filter((b) => b.type === 'room')
+    const unique = [...new Set(rooms.map((b) => b.location).filter(Boolean))].sort()
     return unique.map((loc) => ({
       name:  loc,
-      count: bookings.filter((b) => b.location === loc).length,
+      count: rooms.filter((b) => b.location === loc).length,
     }))
   }, [bookings])
 
   return (
-    <div className="overflow-y-auto pb-28 px-4 space-y-5 pt-4">
+    <PullToRefresh className="overflow-y-auto pb-28 px-4 space-y-5 pt-4">
 
       {/* Stats */}
       <section aria-label="Summary statistics">
@@ -319,6 +324,6 @@ export default function DashboardScreen() {
       </section>
 
       <BackupSheet isOpen={backupOpen} onClose={() => setBackupOpen(false)} />
-    </div>
+    </PullToRefresh>
   )
 }

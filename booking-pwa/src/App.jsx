@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CalendarDays, CalendarRange, LayoutDashboard, Plus, CalendarPlus, X } from 'lucide-react'
+import { CalendarDays, CalendarRange, LayoutDashboard, Plus, CalendarPlus, X, Plane, BedDouble } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from './store/useStore'
 import { scheduleNotifications, cancelAllNotifications } from './services/notifications'
@@ -7,6 +7,7 @@ import BookingsScreen from './screens/BookingsScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import CalendarScreen from './screens/CalendarScreen'
 import AddBookingScreen from './screens/AddBookingScreen'
+import AddHelicopterScreen from './screens/AddHelicopterScreen'
 import BookingDetailSheet from './components/BookingDetailSheet'
 import PasscodeModal from './components/PasscodeModal'
 import LockButton from './components/LockButton'
@@ -49,12 +50,20 @@ function AppContent() {
   const { isEditMode } = useEditModeContext()
   const [screen,          setScreen]          = useState('bookings')
   const [direction,       setDirection]       = useState(0)
-  const [showAdd,         setShowAdd]         = useState(false)
   const [showPasscode,    setShowPasscode]    = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [calendarPrompt,  setCalendarPrompt]  = useState(null)
+  const [typeFilter,      setTypeFilter]      = useState('all')
+
+  // null = hidden | 'menu' = type-chooser | 'room' | 'helicopter'
+  const [addScreen,  setAddScreen]  = useState(null)
+  const [addPrefill, setAddPrefill] = useState(null)
 
   const dragStart = useRef(null)
+  const mainRef   = useRef(null)
+  // screenRef keeps navigate() accessible in the passive touch listener without stale closure
+  const screenRef = useRef(screen)
+  useEffect(() => { screenRef.current = screen }, [screen])
 
   const bookings = useStore((s) => s.bookings)
   const config   = useStore((s) => s.config)
@@ -64,9 +73,16 @@ function AppContent() {
     return () => cancelAllNotifications()
   }, [bookings, config.notifications])
 
+  function openAdd(type, prefill = null) {
+    setAddPrefill(prefill)
+    setAddScreen(type)
+  }
+
   function handleAddClose(savedBooking) {
-    setShowAdd(false)
-    if (savedBooking) setCalendarPrompt(savedBooking)
+    const type = addScreen
+    setAddScreen(null)
+    setAddPrefill(null)
+    if (savedBooking && type === 'room') setCalendarPrompt(savedBooking)
   }
 
   function navigate(newScreen) {
@@ -76,27 +92,53 @@ function AppContent() {
     setDirection(to > from ? 1 : -1)
     setScreen(newScreen)
   }
+  const navigateRef = useRef(navigate)
+  useEffect(() => { navigateRef.current = navigate })
 
-  function onTouchStart(e) {
-    const t = e.touches[0]
-    dragStart.current = { x: t.clientX, y: t.clientY }
+  // Native passive listeners — React synthetic touch events are non-passive and
+  // force Chrome to wait for JS before scrolling, breaking scroll on the whole page.
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    function handleStart(e) {
+      const t = e.touches[0]
+      dragStart.current = { x: t.clientX, y: t.clientY }
+    }
+    function handleEnd(e) {
+      if (!dragStart.current) return
+      const t  = e.changedTouches[0]
+      const dx = t.clientX - dragStart.current.x
+      const dy = t.clientY - dragStart.current.y
+      dragStart.current = null
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+      const idx = TABS.indexOf(screenRef.current)
+      if (dx < 0 && idx < TABS.length - 1) navigateRef.current(TABS[idx + 1])
+      else if (dx > 0 && idx > 0)          navigateRef.current(TABS[idx - 1])
+    }
+    el.addEventListener('touchstart', handleStart, { passive: true })
+    el.addEventListener('touchend',   handleEnd,   { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', handleStart)
+      el.removeEventListener('touchend',   handleEnd)
+    }
+  }, [])
+
+  // Called from BookingDetailSheet when user wants to create a linked booking
+  function handleAddLinked(type, prefill) {
+    setSelectedBooking(null)
+    setTimeout(() => openAdd(type, prefill), 300) // wait for sheet to close
   }
 
-  function onTouchEnd(e) {
-    if (!dragStart.current) return
-    const t  = e.changedTouches[0]
-    const dx = t.clientX - dragStart.current.x
-    const dy = t.clientY - dragStart.current.y
-    dragStart.current = null
-    // Require dominant horizontal movement of at least 60px
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
-    const idx = TABS.indexOf(screen)
-    if (dx < 0 && idx < TABS.length - 1) navigate(TABS[idx + 1])
-    else if (dx > 0 && idx > 0)          navigate(TABS[idx - 1])
+  // Called from BookingDetailSheet when user taps "view linked booking"
+  function handleViewLinked(bookingId) {
+    const linked = bookings.find((b) => b.id === bookingId)
+    if (linked) setSelectedBooking(linked)
   }
+
+  const showingAdd = addScreen === 'room' || addScreen === 'helicopter'
 
   return (
-    <div className="flex flex-col min-h-dvh">
+    <div className="flex flex-col h-dvh">
 
       {/* ── Glass header ────────────────────────────────────────────── */}
       <header
@@ -121,10 +163,9 @@ function AppContent() {
 
       {/* ── Main content area ───────────────────────────────────────── */}
       <main
+        ref={mainRef}
         className="flex-1 overflow-hidden"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 52px)' }}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
       >
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
@@ -137,19 +178,25 @@ function AppContent() {
             transition={SPRING_SCREEN}
             className="flex flex-col h-full"
           >
-            {screen === 'bookings'  && <BookingsScreen onBookingTap={setSelectedBooking} />}
+            {screen === 'bookings' && (
+              <BookingsScreen
+                onBookingTap={setSelectedBooking}
+                typeFilter={typeFilter}
+                onTypeFilterChange={setTypeFilter}
+              />
+            )}
             {screen === 'calendar'  && <CalendarScreen  onBookingTap={setSelectedBooking} />}
             {screen === 'dashboard' && <DashboardScreen />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* ── Bottom bar: isolated FAB left + tab pill right ──────────── */}
+      {/* ── Bottom bar: FAB left + tab pill right ───────────────────── */}
       <div
         className="fixed bottom-0 left-0 right-0 flex items-center justify-between z-40 pointer-events-none"
         style={{ padding: '0 20px', paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
       >
-        {/* FAB — isolated left, only in edit mode */}
+        {/* FAB — only in edit mode */}
         <AnimatePresence>
           {isEditMode && (
             <motion.button
@@ -157,7 +204,7 @@ function AppContent() {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              onClick={() => setShowAdd(true)}
+              onClick={() => setAddScreen('menu')}
               whileTap={{ scale: 0.88 }}
               transition={SPRING_TAB}
               className="w-14 h-14 rounded-full glass-accent flex items-center justify-center pointer-events-auto"
@@ -171,7 +218,7 @@ function AppContent() {
           )}
         </AnimatePresence>
 
-        {/* Tab pill — right */}
+        {/* Tab pill */}
         <nav
           className="glass rounded-[30px] px-1.5 py-1.5 flex items-center pointer-events-auto"
           style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.35)' }}
@@ -187,11 +234,63 @@ function AppContent() {
         </nav>
       </div>
 
-      {/* ── Add booking — spring-slide full screen ───────────────────── */}
+      {/* ── FAB type-chooser menu ────────────────────────────────────── */}
       <AnimatePresence>
-        {showAdd && (
+        {addScreen === 'menu' && (
+          <>
+            <motion.div
+              aria-hidden="true"
+              onClick={() => setAddScreen(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={SPRING_SHEET}
+              className="fixed bottom-0 left-0 right-0 z-50 glass-heavy rounded-t-[28px] px-5 pt-3 pb-10"
+              style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}
+            >
+              <div className="flex justify-center mb-4">
+                <span className="w-9 h-1 rounded-full bg-white/20" />
+              </div>
+              <p className="text-[13px] text-lo text-center mb-4">What would you like to add?</p>
+              <div className="flex gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING_TAB}
+                  onClick={() => openAdd('room')}
+                  className="flex-1 flex flex-col items-center gap-2.5 glass rounded-[16px] py-5 active:opacity-80"
+                >
+                  <BedDouble size={24} className="text-accent" strokeWidth={1.8} />
+                  <span className="text-[14px] font-semibold text-hi">Room Booking</span>
+                  <span className="text-[11px] text-lo text-center px-2">Check-in, checkout, nights</span>
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING_TAB}
+                  onClick={() => openAdd('helicopter')}
+                  className="flex-1 flex flex-col items-center gap-2.5 glass rounded-[16px] py-5 active:opacity-80"
+                >
+                  <Plane size={24} className="text-sky-400" strokeWidth={1.8} />
+                  <span className="text-[14px] font-semibold text-hi">Helicopter</span>
+                  <span className="text-[11px] text-lo text-center px-2">Route, tickets, passengers</span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add room booking ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {addScreen === 'room' && (
           <motion.div
-            key="add-screen"
+            key="add-room"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -199,7 +298,24 @@ function AppContent() {
             className="fixed inset-0 z-50 flex flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
-            <AddBookingScreen onClose={handleAddClose} />
+            <AddBookingScreen onClose={handleAddClose} initialValues={addPrefill} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add helicopter booking ───────────────────────────────────── */}
+      <AnimatePresence>
+        {addScreen === 'helicopter' && (
+          <motion.div
+            key="add-heli"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={SPRING_SHEET}
+            className="fixed inset-0 z-50 flex flex-col"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            <AddHelicopterScreen onClose={handleAddClose} initialValues={addPrefill} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -207,12 +323,14 @@ function AppContent() {
       <BookingDetailSheet
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
+        onAddLinked={handleAddLinked}
+        onViewLinked={handleViewLinked}
       />
 
       <LockButton onOpenModal={() => setShowPasscode(true)} />
       <PasscodeModal isOpen={showPasscode} onClose={() => setShowPasscode(false)} />
 
-      {/* ── Calendar prompt — appears after saving a booking ─────────── */}
+      {/* ── Calendar prompt — after saving a room booking ────────────── */}
       <AnimatePresence>
         {calendarPrompt && (
           <motion.div
@@ -226,9 +344,7 @@ function AppContent() {
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-hi leading-snug">
-                  Add to Calendar?
-                </p>
+                <p className="text-[14px] font-semibold text-hi leading-snug">Add to Calendar?</p>
                 <p className="text-[12px] text-lo mt-0.5 truncate">
                   {calendarPrompt.guestName} · {calendarPrompt.location} · Room {calendarPrompt.room}
                 </p>

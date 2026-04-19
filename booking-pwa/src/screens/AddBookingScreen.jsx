@@ -71,7 +71,6 @@ function ParsedToast({ parsed, onDismiss }) {
   if (parsed.room)       parts.push(`Room ${parsed.room}`)
   if (parsed.guestName)  parts.push(parsed.guestName)
   if (parsed.nights)     parts.push(`${parsed.nights}n`)
-  if (parsed.helicopter?.enabled) parts.push('Helicopter')
   if (parsed.assistance) parts.push('Assistance')
 
   if (parts.length === 0) return null
@@ -107,9 +106,10 @@ function ParsedToast({ parsed, onDismiss }) {
 
 export default function AddBookingScreen({ onClose, initialValues }) {
   const { isEditMode } = useEditModeContext()
-  const config     = useStore((s) => s.config)
-  const bookings   = useStore((s) => s.bookings)
-  const addBooking = useStore((s) => s.addBooking)
+  const config       = useStore((s) => s.config)
+  const bookings     = useStore((s) => s.bookings)
+  const addBooking   = useStore((s) => s.addBooking)
+  const linkBookings = useStore((s) => s.linkBookings)
 
   const initCheckIn = initialValues?.checkIn ?? tomorrow
   const initNights  = initialValues?.nights  ?? 1
@@ -120,9 +120,6 @@ export default function AddBookingScreen({ onClose, initialValues }) {
   const [checkIn, setCheckIn]     = useState(initCheckIn)
   const [nights, setNights]       = useState(String(initNights))
   const [checkOut, setCheckOut]   = useState(initialValues?.checkOut ?? computeCheckOut(initCheckIn, initNights))
-  const [helicopter, setHelicopter]   = useState(
-    initialValues?.helicopter ?? { enabled: false, date: '', tickets: 1 }
-  )
   const [assistance, setAssistance]   = useState(initialValues?.assistance ?? false)
   const [customFlags, setCustomFlags] = useState(initialValues?.customFlags ?? [])
   const [remarks, setRemarks] = useState(() => {
@@ -205,14 +202,6 @@ export default function AddBookingScreen({ onClose, initialValues }) {
         if (co) setCheckOut(co)
         filled++
       }
-      if (parsed.helicopter !== undefined) {
-        setHelicopter((prev) => ({
-          ...prev,
-          ...parsed.helicopter,
-          date: parsed.helicopter.date || prev.date,
-        }))
-        filled++
-      }
       if (parsed.assistance !== undefined) { setAssistance(parsed.assistance); filled++ }
 
       if (filled > 0) {
@@ -229,8 +218,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
 
   // ── Flags ──────────────────────────────────────────────────────────────────
 
-  function handleFlagsChange({ helicopter: h, assistance: a, customFlags: cf }) {
-    setHelicopter(h)
+  function handleFlagsChange({ assistance: a, customFlags: cf }) {
     setAssistance(a)
     setCustomFlags(cf)
   }
@@ -253,21 +241,27 @@ export default function AddBookingScreen({ onClose, initialValues }) {
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     const now     = new Date().toISOString()
     const booking = {
-      id:          crypto.randomUUID(),
-      location:    location.trim(),
-      room:        room.trim(),
-      guestName:   guestName.trim(),
+      id:                  crypto.randomUUID(),
+      type:                'room',
+      location:            location.trim(),
+      room:                room.trim(),
+      guestName:           guestName.trim(),
       checkIn,
-      nights:      Number(nights),
-      checkOut:    checkOut || computeCheckOut(checkIn, nights) || '',
-      helicopter,
+      nights:              Number(nights),
+      checkOut:            checkOut || computeCheckOut(checkIn, nights) || '',
       assistance,
       customFlags,
       remarks,
-      createdAt:   now,
-      updatedAt:   now,
+      linkedHelicopterId:  initialValues?.linkedHelicopterId ?? null,
+      createdAt:           now,
+      updatedAt:           now,
     }
     addBooking(booking)
+
+    if (initialValues?.linkedHelicopterId) {
+      linkBookings(booking.id, initialValues.linkedHelicopterId)
+    }
+
     onClose(booking)
   }
 
@@ -418,7 +412,6 @@ export default function AddBookingScreen({ onClose, initialValues }) {
           {/* Flags */}
           <div className="glass rounded-[16px] p-4">
             <FlagsEditor
-              helicopter={helicopter}
               assistance={assistance}
               customFlags={customFlags}
               onChange={handleFlagsChange}

@@ -9,13 +9,14 @@ function escapeICS(str) {
 export function generateICS(bookings) {
   const dtstamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z'
 
-  const events = bookings.map((b) => {
+  // Only room bookings have checkIn/checkOut; skip helicopter bookings.
+  const events = bookings.filter((b) => b.type !== 'helicopter').map((b) => {
     const dtStart   = b.checkIn.replace(/-/g, '')
     const dtEnd     = b.checkOut.replace(/-/g, '')
     const summary   = escapeICS(`${b.guestName} — Room ${b.room}`)
     const location  = escapeICS(b.location)
     const descParts = [
-      b.helicopter?.enabled && 'Helicopter',
+      b.linkedHelicopterId && 'Helicopter booked',
       b.assistance && 'Assistance required',
       ...(b.customFlags?.filter((f) => f.checked).map((f) => f.label) ?? []),
       ...(b.remarks ?? []),

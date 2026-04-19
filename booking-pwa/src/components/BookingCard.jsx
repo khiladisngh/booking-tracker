@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
-import { Plane, Accessibility, MapPin } from 'lucide-react'
+import { Plane, Accessibility, MapPin, Link } from 'lucide-react'
 import { formatDate, getUrgency } from '../services/dateUtils'
-import { heliTagText } from '../services/bookingUtils'
 
 const GLOW = {
   red:   'glow-red',
@@ -13,7 +12,9 @@ const GLOW = {
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 38 }
 
-export default function BookingCard({ booking, onTap }) {
+// ─── Room card ────────────────────────────────────────────────────────────────
+
+function RoomCard({ booking, onTap }) {
   const urgency = getUrgency(booking.checkIn)
 
   const remarksList = Array.isArray(booking.remarks)
@@ -39,7 +40,12 @@ export default function BookingCard({ booking, onTap }) {
           <span className="font-semibold text-hi text-[15px] leading-snug truncate">
             {booking.guestName}
           </span>
-          <span className="badge badge-accent shrink-0">{booking.room}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {booking.linkedHelicopterId && (
+              <Link size={12} className="text-sky-400" strokeWidth={2} />
+            )}
+            <span className="badge badge-accent">{booking.room}</span>
+          </div>
         </div>
 
         {/* Row 2 — location · date · nights */}
@@ -52,15 +58,9 @@ export default function BookingCard({ booking, onTap }) {
           <span className="tabular-nums shrink-0">{booking.nights}n</span>
         </div>
 
-        {/* Row 3 — tags */}
-        {(booking.helicopter?.enabled || booking.assistance || activeCustomFlags.length > 0) && (
+        {/* Row 3 — flags */}
+        {(booking.assistance || activeCustomFlags.length > 0) && (
           <div className="flex gap-1.5 flex-wrap mb-1.5">
-            {booking.helicopter?.enabled && (
-              <span className="tag tag-sky flex items-center gap-1">
-                <Plane size={10} strokeWidth={2} />
-                {heliTagText(booking.helicopter)}
-              </span>
-            )}
             {booking.assistance && (
               <span className="tag tag-violet flex items-center gap-1">
                 <Accessibility size={10} strokeWidth={2} />
@@ -92,4 +92,71 @@ export default function BookingCard({ booking, onTap }) {
       </div>
     </motion.button>
   )
+}
+
+// ─── Helicopter card ──────────────────────────────────────────────────────────
+
+function HeliCard({ booking, onTap }) {
+  const urgency = getUrgency(booking.travelDate)
+
+  const passengerNames = (booking.passengers ?? []).map((p) => p.name).filter(Boolean)
+
+  return (
+    <motion.button
+      onClick={() => onTap?.(booking)}
+      whileTap={{ scale: 0.97 }}
+      transition={SPRING}
+      className={[
+        'glass relative w-full text-left rounded-[16px] border border-sky-400/20',
+        urgency === 'past' ? 'opacity-50' : 'glow-blue',
+      ].join(' ')}
+    >
+      <div className="pl-4 pr-4 pt-3.5 pb-3">
+        {/* Row 1 — plane icon + name + tickets */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Plane size={13} className="text-sky-400 shrink-0" strokeWidth={2} />
+            <span className="font-semibold text-hi text-[15px] leading-snug truncate">
+              {booking.guestName}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {booking.linkedRoomId && (
+              <Link size={12} className="text-sky-400" strokeWidth={2} />
+            )}
+            <span className="tag tag-sky">
+              {booking.tickets} {booking.tickets === 1 ? 'ticket' : 'tickets'}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 2 — date · route */}
+        <div className="flex items-center gap-1.5 text-[13px] text-lo mb-1.5 flex-wrap">
+          <span className="shrink-0">{formatDate(booking.travelDate)}</span>
+          {(booking.boardingFrom || booking.landingTo) && (
+            <>
+              <span className="text-dim shrink-0">·</span>
+              <span className="truncate max-w-[90px]">{booking.boardingFrom}</span>
+              <span className="text-dim shrink-0">→</span>
+              <span className="truncate max-w-[90px]">{booking.landingTo}</span>
+            </>
+          )}
+        </div>
+
+        {/* Passengers */}
+        {passengerNames.length > 0 && (
+          <p className="text-[12px] text-dim truncate">
+            {passengerNames.join(', ')}
+          </p>
+        )}
+      </div>
+    </motion.button>
+  )
+}
+
+// ─── Dispatcher ───────────────────────────────────────────────────────────────
+
+export default function BookingCard({ booking, onTap }) {
+  if (booking.type === 'helicopter') return <HeliCard booking={booking} onTap={onTap} />
+  return <RoomCard booking={booking} onTap={onTap} />
 }
