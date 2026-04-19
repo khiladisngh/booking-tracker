@@ -5,12 +5,14 @@ import { useStore } from '../store/useStore'
 import { formatDate } from '../services/dateUtils'
 import RemarksEditor from './RemarksEditor'
 import FlagsEditor from './FlagsEditor'
+import { useEditModeContext } from '../context/EditModeContext'
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 36 }
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
 function ViewMode({ booking, onEdit, onRequestDelete }) {
+  const { isEditMode } = useEditModeContext()
   const remarksList = Array.isArray(booking.remarks)
     ? booking.remarks.filter(Boolean)
     : booking.remarks ? [booking.remarks] : []
@@ -58,14 +60,16 @@ function ViewMode({ booking, onEdit, onRequestDelete }) {
 
       <div className="flex-1" />
 
-      <div className="flex gap-2.5 mt-6">
-        <button type="button" onClick={onRequestDelete} className="btn-danger flex-1 touch-target">
-          Delete
-        </button>
-        <button type="button" onClick={onEdit} className="btn-primary flex-1 touch-target">
-          Edit
-        </button>
-      </div>
+      {isEditMode && (
+        <div className="flex gap-2.5 mt-6">
+          <button type="button" onClick={onRequestDelete} className="btn-danger flex-1 touch-target">
+            Delete
+          </button>
+          <button type="button" onClick={onEdit} className="btn-primary flex-1 touch-target">
+            Edit
+          </button>
+        </div>
+      )}
     </>
   )
 }

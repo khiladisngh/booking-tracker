@@ -8,6 +8,9 @@ import DashboardScreen from './screens/DashboardScreen'
 import CalendarScreen from './screens/CalendarScreen'
 import AddBookingScreen from './screens/AddBookingScreen'
 import BookingDetailSheet from './components/BookingDetailSheet'
+import PasscodeModal from './components/PasscodeModal'
+import LockButton from './components/LockButton'
+import { EditModeProvider, useEditModeContext } from './context/EditModeContext'
 import { downloadICS } from './services/icsExport'
 
 const TABS = ['bookings', 'calendar', 'dashboard']
@@ -35,9 +38,19 @@ const screenVariants = {
 }
 
 export default function App() {
+  return (
+    <EditModeProvider>
+      <AppContent />
+    </EditModeProvider>
+  )
+}
+
+function AppContent() {
+  const { isEditMode } = useEditModeContext()
   const [screen,          setScreen]          = useState('bookings')
   const [direction,       setDirection]       = useState(0)
   const [showAdd,         setShowAdd]         = useState(false)
+  const [showPasscode,    setShowPasscode]    = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [calendarPrompt,  setCalendarPrompt]  = useState(null)
 
@@ -136,16 +149,27 @@ export default function App() {
         className="fixed bottom-0 left-0 right-0 flex items-center justify-between z-40 pointer-events-none"
         style={{ padding: '0 20px', paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
       >
-        {/* FAB — isolated left */}
-        <motion.button
-          onClick={() => setShowAdd(true)}
-          whileTap={{ scale: 0.88 }}
-          transition={SPRING_TAB}
-          className="w-14 h-14 rounded-full glass-accent flex items-center justify-center pointer-events-auto"
-          aria-label="Add booking"
-        >
-          <Plus size={22} color="var(--ds-accent)" strokeWidth={2.5} />
-        </motion.button>
+        {/* FAB — isolated left, only in edit mode */}
+        <AnimatePresence>
+          {isEditMode && (
+            <motion.button
+              key="fab"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              onClick={() => setShowAdd(true)}
+              whileTap={{ scale: 0.88 }}
+              transition={SPRING_TAB}
+              className="w-14 h-14 rounded-full glass-accent flex items-center justify-center pointer-events-auto"
+              aria-label="Add booking"
+            >
+              <Plus size={22} color="var(--ds-accent)" strokeWidth={2.5} />
+            </motion.button>
+          )}
+          {!isEditMode && (
+            <div key="fab-placeholder" className="w-14 h-14" aria-hidden="true" />
+          )}
+        </AnimatePresence>
 
         {/* Tab pill — right */}
         <nav
@@ -184,6 +208,9 @@ export default function App() {
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
       />
+
+      <LockButton onOpenModal={() => setShowPasscode(true)} />
+      <PasscodeModal isOpen={showPasscode} onClose={() => setShowPasscode(false)} />
 
       {/* ── Calendar prompt — appears after saving a booking ─────────── */}
       <AnimatePresence>

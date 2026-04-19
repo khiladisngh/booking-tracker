@@ -32,6 +32,7 @@ jobs:
         working-directory: booking-pwa
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_ADMIN_PASSCODE: ${{ secrets.VITE_ADMIN_PASSCODE }}
         run: bun run build
 
       - uses: actions/upload-pages-artifact@v3

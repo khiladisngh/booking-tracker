@@ -7,6 +7,7 @@ import { useVoiceInput } from '../services/voiceInput'
 import { parseBookingCommand } from '../services/nlpParser'
 import RemarksEditor from '../components/RemarksEditor'
 import FlagsEditor from '../components/FlagsEditor'
+import { useEditModeContext } from '../context/EditModeContext'
 
 const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 
@@ -105,6 +106,7 @@ function ParsedToast({ parsed, onDismiss }) {
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AddBookingScreen({ onClose, initialValues }) {
+  const { isEditMode } = useEditModeContext()
   const config     = useStore((s) => s.config)
   const bookings   = useStore((s) => s.bookings)
   const addBooking = useStore((s) => s.addBooking)
@@ -237,6 +239,7 @@ export default function AddBookingScreen({ onClose, initialValues }) {
   }
 
   function handleSave() {
+    if (!isEditMode) return
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     const now     = new Date().toISOString()
