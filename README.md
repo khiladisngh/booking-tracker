@@ -1,36 +1,6 @@
 # Booking Tracker PWA
 
-> Tactical guest-house booking management — built for field use by an Army officer.
-
-A progressive web app for tracking guest arrivals, departures, helicopter tickets, and special requirements across multiple locations. Runs offline, installs on any device, and can be filled by voice.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Design System](#design-system)
-- [Data Model](#data-model)
-- [Voice Input](#voice-input)
-- [PWA & Offline](#pwa--offline)
-- [Versioning](#versioning)
-
----
-
-## Overview
-
-Managing guest-house bookings in the field means working across multiple locations, varying room-numbering conventions, and frequent last-minute changes. This app replaces paper registers and fragile spreadsheets with a fast, always-available mobile-first interface that works even without an internet connection.
-
-Key design principles:
-
-- **Minimal UI** — nothing decorative, every pixel is functional
-- **One-handed operation** — large tap targets, bottom-sheet interactions, no nested menus
-- **Offline first** — all data lives in `localStorage`; service worker caches the app shell
-- **Flutter-ready** — design tokens map 1:1 to Flutter `ColorScheme` for a future native migration
+A progressive web app for tracking guest arrivals, departures, helicopter tickets, and special requirements across multiple locations. Runs offline, installs on any device, and supports voice input.
 
 ---
 
@@ -143,8 +113,6 @@ booking-tracker/
         │
         ├── store/
         │   └── useStore.js            # Zustand store — bookings, config, actions
-        │                              #   v1→v2 migration: locationId→location,
-        │                              #   remarks string→array, customFlags added
         │
         ├── services/
         │   ├── dateUtils.js           # Urgency bands, booking grouping, date formatting
@@ -155,8 +123,8 @@ booking-tracker/
         ├── components/
         │   ├── BookingCard.jsx        # List card: urgency stripe, room badge, flag tags, remarks
         │   ├── BookingDetailSheet.jsx # Bottom sheet: view / edit / delete modes
-        │   ├── Checkbox.jsx           # Custom accessible checkbox (no browser default)
-        │   ├── FlagsEditor.jsx        # Helicopter + Assistance + custom flags with + button
+        │   ├── Checkbox.jsx           # Custom accessible checkbox
+        │   ├── FlagsEditor.jsx        # Helicopter + Assistance + custom flags
         │   ├── LocationTabs.jsx       # Horizontal tab bar from unique booking locations
         │   ├── RemarksEditor.jsx      # Bulleted list editor: add (Enter/+), remove (Backspace/×)
         │   └── TodayBanner.jsx        # Arriving / departing / occupied strip
@@ -171,7 +139,7 @@ booking-tracker/
 
 ## Design System
 
-The visual language is called **Tactical Command** — a dark, high-contrast theme designed for legibility in varied lighting conditions.
+A dark, high-contrast theme designed for legibility in varied lighting conditions.
 
 ### Colour tokens
 
@@ -196,10 +164,9 @@ All tokens are defined as CSS custom properties in `src/index.css` and exposed a
 
 ### Flutter migration
 
-Every token maps directly to a Flutter `ColorScheme` role — renaming is not required when migrating:
+Every token maps directly to a Flutter `ColorScheme` role:
 
 ```dart
-// Flutter ThemeData.colorScheme equivalents
 scaffoldBackgroundColor → --ds-canvas      (#07101e)
 surface                 → --ds-surface     (#0d1a2e)
 surfaceVariant          → --ds-raised      (#122234)
@@ -246,7 +213,7 @@ error                   → --ds-red         (#e84040)
   checkOut:    string          // yyyy-MM-dd (derived or directly set)
   helicopter:  boolean
   assistance:  boolean
-  customFlags: Array<{         // user-defined flags
+  customFlags: Array<{
     id:      string
     label:   string
     checked: boolean
@@ -259,7 +226,7 @@ error                   → --ds-red         (#e84040)
 
 ### Store migration
 
-The Zustand store uses `version: 2`. If a user has v1 data in `localStorage`, the `migrate` function runs automatically on next load:
+The Zustand store uses `version: 2`. If a user has v1 data in `localStorage`, the `migrate` function runs automatically:
 
 | v1 field | v2 field | Transform |
 |----------|----------|-----------|
@@ -271,7 +238,7 @@ The Zustand store uses `version: 2`. If a user has v1 data in `localStorage`, th
 
 ## Voice Input
 
-The `useVoiceInput` hook wraps the Web Speech API with an interim-transcript display:
+The `useVoiceInput` hook wraps the Web Speech API:
 
 ```js
 const { isListening, interimText, isSupported, start, stop } = useVoiceInput({
@@ -308,6 +275,7 @@ The service worker is built in `injectManifest` mode. It precaches the full app 
 
 | Version | Date | Notes |
 |---------|------|-------|
+| v0.3.0 | 2026-04-19 | Firebase Firestore real-time sync, helicopter bookings, pull-to-refresh |
 | v0.1.0 | 2026-04-18 | Initial release — full CRUD, design system, voice input, dashboard, PWA |
 
 ---
