@@ -476,11 +476,11 @@ body {
 
 /* ─── Passcode gate ───────────────────────────────────────────────────────── */
 
-/* Subtle scrim — lets the animated mesh background show through */
+/* Scrim — blurs background content so data isn't readable, but lets colours show */
 .gate-scrim {
-  background: rgba(0, 0, 0, 0.30);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
 }
 
 /* Numpad keys — sit inside the glass-heavy card */
@@ -496,9 +496,9 @@ body {
 /* Light mode */
 @media (prefers-color-scheme: light) {
   .gate-scrim {
-    background: rgba(0, 0, 0, 0.18);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
   }
 
   .numkey {
